@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Targets by Off the Deck</title>
+    <!-- Brand Color Theme for iPad Interface -->
+    <meta name="theme-color" content="#DEE1DA" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,700;0,900;1,900&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        overflow: hidden;
+        background-color: #DEE1DA; 
+        color: #3C3C3C; 
+      }
+      .brand-headline {
+        font-weight: 900;
+        font-style: italic;
+        letter-spacing: -0.04em;
+        display: inline-block;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .otd-grid-bg {
+        background-color: #DEE1DA;
+        background-image: 
+          linear-gradient(rgba(0, 164, 158, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 164, 158, 0.03) 1px, transparent 1px);
+        background-size: 60px 60px;
+        animation: waterFlow 120s linear infinite;
+      }
+      @keyframes waterFlow {
+        from { background-position: 0 0; }
+        to { background-position: 120px 240px; }
+      }
+      
+      /* Shimmer Effect */
+      @keyframes shimmer {
+        0% { transform: translateX(-250%) skewX(-20deg); }
+        100% { transform: translateX(250%) skewX(-20deg); }
+      }
+      .shimmer-btn {
+        position: relative;
+        overflow: hidden;
+      }
+      .shimmer-btn::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.4),
+          transparent
+        );
+        animation: shimmer 3s infinite ease-in-out;
+        pointer-events: none;
+      }
+
+      /* Safe area padding for iPad Pro */
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+        "react/": "https://esm.sh/react@^19.2.4/",
+        "react": "https://esm.sh/react@^19.2.4",
+        "framer-motion": "https://esm.sh/framer-motion@^12.29.2"
+      }
+    }
+    </script>
+  </head>
+  <body class="otd-grid-bg">
+    <div id="root"></div>
+  </body>
+</html>
