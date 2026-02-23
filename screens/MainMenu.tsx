@@ -67,17 +67,26 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
-      className="relative flex flex-col items-center justify-center h-full w-full max-h-screen py-2 md:py-6 gap-6 md:gap-10"
+      className="relative flex flex-col items-center justify-center h-full w-full max-h-screen py-1 md:py-4 gap-4 md:gap-8"
     >
       {/* Top Branding Section */}
       <div className="flex flex-col items-center w-full">
         <div 
-          className="text-center flex flex-col items-center mt-4 md:mt-8 cursor-default select-none"
+          className="text-center flex flex-col items-center mt-2 md:mt-4 cursor-default select-none"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           onMouseDown={handleTouchStart}
           onMouseUp={handleTouchEnd}
         >
+          <motion.img
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+            src="/logo.png"
+            alt="Off the Deck Logo"
+            className="w-32 md:w-44 lg:w-48 mb-2 md:mb-4"
+            referrerPolicy="no-referrer"
+          />
           <motion.h1 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -93,7 +102,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
             transition={{ delay: 0.4 }}
             className="mt-1"
           >
-            <span className="font-bold text-[9px] md:text-[10px] tracking-[0.4em] uppercase text-[#3C3C3C]">
+            <span className="font-bold text-[9px] md:text-[10px] tracking-[0.4em] text-[#3C3C3C]">
               {isExporting ? 'EXPORTING DATABASE...' : 'by Off the Deck'}
             </span>
           </motion.div>
