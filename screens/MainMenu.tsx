@@ -82,7 +82,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            src="./logo.png"
+            src="logo.png"
             alt="Off the Deck Logo"
             className="w-32 md:w-44 lg:w-48 mb-2 md:mb-4"
           />
