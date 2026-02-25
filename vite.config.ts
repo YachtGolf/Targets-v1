@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
       },
       plugins: [react()],
+      // Set base path for GitHub Pages deployment
       base: '/Targets-v1/',
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
