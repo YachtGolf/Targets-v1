@@ -1,6 +1,7 @@
 
 import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import logo from '../src/logo.png';
 import { GameState, Player } from '../types';
 import { Users, Radio, Play, ShoppingCart, Database, Download } from 'lucide-react';
 import { COLORS } from '../constants';
@@ -82,7 +83,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            src={import.meta.env.DEV ? '/logo.png' : '/Targets-v1/logo.png'}
+            src={logo}
             alt="Off the Deck Logo"
             className="w-32 md:w-44 lg:w-48 mb-2 md:mb-4"
             referrerPolicy="no-referrer"
