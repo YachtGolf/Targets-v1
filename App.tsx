@@ -13,7 +13,7 @@ import Battleships from './screens/games/Battleships';
 import FirstTo100 from './screens/games/FirstTo100';
 import CaribbeanCrush from './screens/games/CaribbeanCrush';
 import ArcticBlast from './screens/games/ArcticBlast';
-import GeorgiaCalling from './screens/games/GeorgiaCalling';
+import AzaleaAttack from './screens/games/AzaleaAttack';
 import Podium from './screens/Podium';
 import { GameState, Player, GameType, TargetColor } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,7 +43,7 @@ const App: React.FC = () => {
   const handleComplete = (p: Player[]) => {
     setPlayers(prev => {
       // For tournament mode, we might want to replace the whole roster
-      if (gameType === GameType.GEORGIA_CALLING) return p;
+      if (gameType === GameType.AZALEA_ATTACK) return p;
       
       return prev.map(originalPlayer => {
         const updated = p.find(up => up.id === originalPlayer.id);
@@ -70,7 +70,7 @@ const App: React.FC = () => {
         if (gameType === GameType.ARCTIC_BLAST) return <ArcticBlast players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         if (gameType === GameType.BATTLESHIPS) return <Battleships players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         if (gameType === GameType.FIRST_TO_100) return <FirstTo100 players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
-        if (gameType === GameType.GEORGIA_CALLING) return <GeorgiaCalling onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} shotsPerPlayer={shotsConfig} />;
+        if (gameType === GameType.AZALEA_ATTACK) return <AzaleaAttack onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} shotsPerPlayer={shotsConfig} />;
         return null;
       case GameState.PODIUM: 
         return <Podium players={players} gameType={gameType} onPlayAgain={() => setGameState(GameState.PLAYING)} onReturnToGames={() => setGameState(GameState.GAMES_MENU)} />;

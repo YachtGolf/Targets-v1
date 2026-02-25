@@ -66,23 +66,35 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     const newHits = shipToUpdate.currentHits + 1;
     const isSunk = newHits >= shipToUpdate.maxHits;
 
-    const updatedFleet = {
-      ...defenderFleet,
-      ships: defenderFleet.ships.map((s, idx) => 
-        idx === shipIdx ? { ...s, currentHits: newHits, isSunk: isSunk } : s
-      )
-    };
+    setFleets(prev => {
+      const defenderId = defender.id;
+      const currentFleet = prev[defenderId];
+      if (!currentFleet) return prev;
 
-    setFleets(prev => ({
-      ...prev,
-      [defender.id]: updatedFleet
-    }));
+      const updatedShips = currentFleet.ships.map((s, idx) => 
+        idx === shipIdx ? { ...s, currentHits: newHits, isSunk: isSunk } : s
+      );
+      
+      return {
+        ...prev,
+        [defenderId]: { ...currentFleet, ships: updatedShips }
+      };
+    });
 
     setExplosion({ sunk: isSunk });
 
     setTimeout(() => {
       setExplosion(null);
-      if (updatedFleet.ships.every(s => s.isSunk)) {
+      
+      // Check if all ships are sunk in the defender's fleet
+      // We use the current fleets state but account for the hit we just made
+      const currentDefenderFleet = fleets[defender.id];
+      const allSunk = currentDefenderFleet.ships.every((s, idx) => {
+        if (idx === shipIdx) return isSunk;
+        return s.isSunk;
+      });
+
+      if (allSunk) {
         onComplete(players.map(p => ({ 
           ...p, 
           score: p.id === battlePlayers[activeIdx].id ? 100 : 0 
@@ -153,25 +165,39 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   const ShipVisual = ({ ship, size = "md" }: { ship: Ship, size?: "sm" | "md" }) => {
     const color = COLORS[ship.color];
-    const scale = size === "sm" ? 0.7 : 0.9;
+    const scale = size === "sm" ? 0.5 : 0.65;
     const width = (ship.type === 'small' ? 80 : ship.type === 'medium' ? 120 : 180) * scale;
-    const height = 65 * scale;
+    const height = 80 * scale;
 
     return (
       <div className="relative flex flex-col items-center justify-end" style={{ width: `${width}px`, height: `${height}px` }}>
-        <div className="relative w-full">
+        <div className="relative w-full flex flex-col items-center">
           {ship.type === 'large' ? (
-            <div className="relative h-[45px] flex flex-col justify-end">
-              <div className="w-full h-full rounded-b-[2rem] shadow-xl border-t border-white/20" style={{ backgroundColor: color, clipPath: 'polygon(0% 0%, 100% 0%, 95% 100%, 5% 100%)' }} />
-            </div>
+            /* Destroyer Class */
+            <>
+              <div className="flex items-end gap-1 mb-[-1px] w-[70%] justify-center">
+                <div className="w-[20%] h-[12px] bg-black/10 rounded-t-sm" />
+                <div className="w-[40%] h-[22px] bg-black/20 rounded-t-md relative">
+                  <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-3 bg-white/20 rounded-full" />
+                </div>
+                <div className="w-[15%] h-[8px] bg-black/10 rounded-t-sm" />
+              </div>
+              <div className="w-full h-[35px] shadow-xl border-t border-white/20" style={{ backgroundColor: color, clipPath: 'polygon(0% 0%, 100% 0%, 85% 100%, 15% 100%)' }} />
+            </>
           ) : ship.type === 'medium' ? (
-            <div className="relative h-[45px] flex flex-col justify-end">
-              <div className="w-full h-full rounded-b-[2.5rem] shadow-xl border-t border-white/20" style={{ backgroundColor: color, clipPath: 'polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)' }} />
-            </div>
+            /* Yacht */
+            <>
+              <div className="w-[65%] h-[18px] bg-black/10 mb-[-1px] self-end mr-[10%]" style={{ clipPath: 'polygon(30% 0%, 100% 0%, 90% 100%, 0% 100%)' }} />
+              <div className="w-full h-[30px] shadow-xl border-t border-white/20" style={{ backgroundColor: color, clipPath: 'polygon(20% 0%, 100% 0%, 80% 100%, 0% 100%)' }} />
+            </>
           ) : (
-            <div className="relative h-[45px] flex flex-col justify-end">
-              <div className="w-full h-full rounded-b-[2rem] shadow-xl border-t border-white/20" style={{ backgroundColor: color, clipPath: 'polygon(5% 0%, 95% 0%, 100% 100%, 0% 100%)' }} />
-            </div>
+            /* Tug Boat */
+            <>
+              <div className="w-[45%] h-[20px] bg-black/20 rounded-t-lg mb-[-1px] relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-4 bg-black/30 rounded-t-sm" />
+              </div>
+              <div className="w-full h-[32px] rounded-b-[1rem] shadow-xl border-t border-white/20" style={{ backgroundColor: color, clipPath: 'polygon(0% 0%, 100% 0%, 90% 100%, 10% 100%)' }} />
+            </>
           )}
         </div>
       </div>
@@ -262,72 +288,72 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
         )}
       </AnimatePresence>
 
-      <header className="px-8 py-4 flex justify-between items-center z-50 shrink-0 border-b border-white/20 bg-white/10">
-        <button onClick={onQuit} className="p-3 bg-white/90 rounded-full shadow-lg border border-white active:scale-95 transition-transform">
-          <X size={20} className="text-[#3C3C3C]" />
+      <header className="px-8 py-2 flex justify-between items-center z-50 shrink-0 border-b border-white/20 bg-white/10">
+        <button onClick={onQuit} className="p-2.5 bg-white/90 rounded-full shadow-lg border border-white active:scale-95 transition-transform">
+          <X size={18} className="text-[#3C3C3C]" />
         </button>
-        <div className="flex items-center gap-12">
+        <div className="flex items-center gap-8">
           <div className="flex flex-col items-end transition-all duration-500">
-            <span className={`brand-headline text-xl ${activeIdx === 0 ? 'text-[#3C3C3C]' : 'opacity-20'}`}>{battlePlayers[0].name}</span>
+            <span className={`brand-headline text-lg ${activeIdx === 0 ? 'text-[#3C3C3C]' : 'opacity-20'}`}>{battlePlayers[0].name}</span>
             {activeIdx === 0 ? <motion.span layoutId="turnBadge" className="text-[7px] font-black uppercase text-white bg-[#00A49E] px-2 py-0.5 rounded-full tracking-widest mt-1">Active Turn</motion.span> : <span className="text-[7px] font-black uppercase text-[#3C3C3C20] tracking-widest mt-1">Fleet Alpha</span>}
           </div>
-          <Radar size={20} className="text-[#00A49E] animate-pulse" />
+          <Radar size={18} className="text-[#00A49E] animate-pulse" />
           <div className="flex flex-col items-start transition-all duration-500">
-            <span className={`brand-headline text-xl ${activeIdx === 1 ? 'text-[#3C3C3C]' : 'opacity-20'}`}>{battlePlayers[1].name}</span>
+            <span className={`brand-headline text-lg ${activeIdx === 1 ? 'text-[#3C3C3C]' : 'opacity-20'}`}>{battlePlayers[1].name}</span>
             {activeIdx === 1 ? <motion.span layoutId="turnBadge" className="text-[7px] font-black uppercase text-white bg-[#00A49E] px-2 py-0.5 rounded-full tracking-widest mt-1">Active Turn</motion.span> : <span className="text-[7px] font-black uppercase text-[#3C3C3C20] tracking-widest mt-1">Fleet Beta</span>}
           </div>
         </div>
         <div className="w-12" />
       </header>
 
-      <div className="flex-1 grid grid-rows-[1fr_auto_1fr] w-full max-w-5xl mx-auto px-6 relative overflow-hidden">
-        <div className="relative flex flex-col items-center justify-center bg-blue-900/5 rounded-[4rem] border border-white/40 shadow-inner my-4 overflow-hidden">
-          <div className="absolute top-6 flex items-center gap-3 px-6 py-2 bg-white/80 rounded-full border border-white/50 shadow-sm z-10">
-             <Target size={16} className="text-[#00A49E]" /><span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#3C3C3C]">{defender.name}'s Sector</span>
+      <div className="flex-1 grid grid-rows-[1fr_auto_1fr] w-full max-w-5xl mx-auto px-4 relative overflow-hidden">
+        <div className="relative flex flex-col items-center justify-center bg-blue-900/5 rounded-[2rem] border border-white/40 shadow-inner my-0.5 overflow-hidden">
+          <div className="absolute top-3 flex items-center gap-2 px-3 py-1 bg-white/80 rounded-full border border-white/50 shadow-sm z-10">
+             <Target size={12} className="text-[#00A49E]" /><span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#3C3C3C]">{defender.name}'s Fleet</span>
           </div>
-          <div className="flex justify-center items-end gap-6 md:gap-16 pt-16">
+          <div className="flex justify-center items-end gap-3 md:gap-8 pt-8">
             {defenderFleet?.ships.map((s, i) => <ShipComponent key={s.id} ship={s} index={i} />)}
           </div>
         </div>
         
-        <div className="z-[100] flex justify-center py-2 shrink-0">
-           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white/95 backdrop-blur-3xl rounded-[4rem] px-12 py-8 shadow-2xl border border-white flex flex-col items-center gap-6">
-             <div className="flex flex-col items-center gap-1">
-               <span className="text-[10px] font-black uppercase tracking-[0.6em] text-[#00A49E]">Striker Control</span>
-               <span className="brand-headline text-lg text-[#3C3C3C]">{attacker.name.toUpperCase()}</span>
+        <div className="z-[100] flex justify-center py-0.5 shrink-0">
+           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white/95 backdrop-blur-3xl rounded-[2.5rem] px-6 py-3 shadow-2xl border border-white flex flex-col items-center gap-2">
+             <div className="flex flex-col items-center gap-0">
+               <span className="text-[8px] font-black uppercase tracking-[0.6em] text-[#00A49E]">Striker Control</span>
+               <span className="brand-headline text-sm text-[#3C3C3C]">{attacker.name.toUpperCase()}</span>
              </div>
-             <div className="flex items-center gap-10">
+             <div className="flex items-center gap-4">
                {(['red', 'blue', 'green'] as TargetColor[]).map(c => {
                  const isSunk = defenderFleet?.ships.find(s => s.color === c)?.isSunk;
                  const disabled = isSunk || !!explosion || isRotating || showTurnPopup;
                  return (
                    <button key={c} onClick={() => handleHit(c)} disabled={disabled} className={`group relative flex flex-col items-center transition-all ${disabled ? 'opacity-10 grayscale' : 'hover:scale-110 active:scale-95'}`}>
-                     <div className="w-20 h-20 rounded-full flex items-center justify-center border-4 border-white shadow-2xl" style={{ backgroundColor: COLORS[c] }}><Zap size={28} className="text-white fill-current" /></div>
+                     <div className="w-14 h-14 rounded-full flex items-center justify-center border-4 border-white shadow-2xl" style={{ backgroundColor: COLORS[c] }}><Zap size={18} className="text-white fill-current" /></div>
                    </button>
                  );
                })}
              </div>
-             <div className="w-full flex flex-col items-center gap-4 mt-2">
+             <div className="w-full flex flex-col items-center gap-1.5 mt-0.5">
                <div className="h-[1px] w-1/2 bg-[#3C3C3C15]" />
-               <div className="flex gap-10">
-                <button onClick={handleRewind} disabled={history.length === 0} className={`flex flex-col items-center gap-2 group transition-all ${history.length === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}>
-                  <div className="w-14 h-14 rounded-full border-2 border-[#3C3C3C15] flex items-center justify-center bg-white shadow-sm group-hover:bg-[#3C3C3C05] transition-colors"><RotateCcw size={22} className="text-[#3C3C3C] stroke-[2.5px]" /></div>
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[#3C3C3C40]">Rewind</span>
+               <div className="flex gap-6">
+                <button onClick={handleRewind} disabled={history.length === 0} className={`flex flex-col items-center gap-1 group transition-all ${history.length === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}>
+                  <div className="w-10 h-10 rounded-full border-2 border-[#3C3C3C15] flex items-center justify-center bg-white shadow-sm group-hover:bg-[#3C3C3C05] transition-colors"><RotateCcw size={18} className="text-[#3C3C3C] stroke-[2.5px]" /></div>
+                  <span className="text-[7px] font-black uppercase tracking-[0.4em] text-[#3C3C3C40]">Rewind</span>
                 </button>
-                <button onClick={handleMiss} disabled={!!explosion || isRotating || showTurnPopup} className={`flex flex-col items-center gap-2 group transition-all ${isRotating || showTurnPopup ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}>
-                  <div className="w-14 h-14 rounded-full border-2 border-[#00A49E40] flex items-center justify-center bg-white shadow-sm group-hover:bg-[#00A49E10] transition-colors"><X size={26} className="text-[#00A49E] stroke-[3.5px]" /></div>
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[#00A49E]">Missed Shot</span>
+                <button onClick={handleMiss} disabled={!!explosion || isRotating || showTurnPopup} className={`flex flex-col items-center gap-1 group transition-all ${isRotating || showTurnPopup ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}>
+                  <div className="w-10 h-10 rounded-full border-2 border-[#00A49E40] flex items-center justify-center bg-white shadow-sm group-hover:bg-[#00A49E10] transition-colors"><X size={20} className="text-[#00A49E] stroke-[3.5px]" /></div>
+                  <span className="text-[7px] font-black uppercase tracking-[0.4em] text-[#00A49E]">Missed Shot</span>
                 </button>
                </div>
              </div>
            </motion.div>
         </div>
-
-        <div className="relative flex flex-col items-center justify-center bg-[#00A49E]/5 rounded-[4rem] border border-white/20 shadow-inner my-4 opacity-50 overflow-hidden">
-           <div className="absolute bottom-6 flex items-center gap-3 px-6 py-2 bg-white/40 rounded-full border border-white/30 z-10">
-             <Anchor size={16} className="text-[#3C3C3C]/40" /><span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#3C3C3C]/40">{attacker.name}'s Fleet</span>
+ 
+        <div className="relative flex flex-col items-center justify-center bg-[#00A49E]/5 rounded-[2rem] border border-white/20 shadow-inner my-0.5 opacity-50 overflow-hidden">
+           <div className="absolute bottom-3 flex items-center gap-2 px-3 py-1 bg-white/40 rounded-full border border-white/30 z-10">
+             <Anchor size={12} className="text-[#3C3C3C]/40" /><span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#3C3C3C]/40">{attacker.name}'s Fleet</span>
           </div>
-          <div className="flex justify-center items-end gap-6 md:gap-16 pb-16">
+          <div className="flex justify-center items-end gap-3 md:gap-8 pb-8">
             {fleets[attacker.id]?.ships.map((s, i) => <ShipComponent key={s.id} ship={s} index={i} isPassive />)}
           </div>
         </div>

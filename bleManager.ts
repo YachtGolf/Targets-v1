@@ -37,10 +37,13 @@ export class BLEManager extends EventTarget {
       const characteristic = await service?.getCharacteristic(BLE_CHARACTERISTIC_UUID);
 
       if (characteristic) {
+        let lastHitTime = 0;
         await characteristic.startNotifications();
         characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
+          const now = Date.now();
           const value = new TextDecoder().decode(event.target.value);
-          if (value.trim() === 'HIT:BLUE') {
+          if (value.trim() === 'HIT:BLUE' && now - lastHitTime > 500) {
+            lastHitTime = now;
             window.dispatchEvent(new CustomEvent('ble-hit', { detail: { color: 'blue' } }));
           }
         });

@@ -88,8 +88,8 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
 
   const tournamentGames = [
     {
-      id: GameType.GEORGIA_CALLING,
-      title: 'Georgia Calling',
+      id: GameType.AZALEA_ATTACK,
+      title: 'Azalea Attack',
       desc: 'Masters-themed tournament. Walk-up registration for large events.',
       icon: <Trophy className="text-emerald-700" size={24} />,
       min: 0, // Walk-up allows 0 initial

@@ -19,6 +19,7 @@ const CountdownChaos: React.FC<Props> = ({ players, onComplete, onQuit }) => {
   const [gameP, setGameP] = useState(players.map(p => ({ ...p, score: 0, hits: [] })));
   const hitsHistory = useRef<number[]>([]);
 
+  const isProcessingRef = useRef(false);
   const p = gameP[idx];
 
   const completedPlayers = gameP
@@ -26,13 +27,21 @@ const CountdownChaos: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     .sort((a, b) => b.score - a.score);
 
   const handleHit = useCallback((c: TargetColor) => {
-    if (!active) return;
+    if (!active || isProcessingRef.current) return;
+    
+    isProcessingRef.current = true;
     const pts = TARGET_CONFIG[c].points;
-    const updated = [...gameP];
-    updated[idx].score += pts;
+    
+    setGameP(prev => prev.map((player, i) => 
+      i === idx ? { ...player, score: player.score + pts } : player
+    ));
     hitsHistory.current.push(pts);
-    setGameP(updated);
-  }, [active, gameP, idx]);
+
+    // Small cooldown to prevent double-triggering from BLE
+    setTimeout(() => {
+      isProcessingRef.current = false;
+    }, 200);
+  }, [active, idx]);
 
   useEffect(() => {
     const onBleHit = (e: any) => {

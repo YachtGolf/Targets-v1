@@ -28,6 +28,7 @@ const CaptureTheFlag: React.FC<Props> = ({ players, onComplete, onQuit }) => {
   const [showTurnPopup, setShowTurnPopup] = useState(true);
   const [lastAction, setLastAction] = useState<'captured' | 'missed' | 'undo' | null>(null);
 
+  const isProcessingRef = useRef(false);
   const turnTimerRef = useRef<number | null>(null);
   const currentPlayer = players[activeIdx];
 
@@ -39,8 +40,9 @@ const CaptureTheFlag: React.FC<Props> = ({ players, onComplete, onQuit }) => {
   }, []);
 
   const handleStrike = useCallback((color: TargetColor) => {
-    if (isAnimating || showTurnPopup) return;
+    if (isProcessingRef.current || showTurnPopup) return;
 
+    isProcessingRef.current = true;
     setHistory(prev => [...prev, { ownership: { ...ownership }, activeIdx }]);
 
     setIsAnimating(true);
@@ -62,9 +64,10 @@ const CaptureTheFlag: React.FC<Props> = ({ players, onComplete, onQuit }) => {
         setLastAction(null);
         setShowTurnPopup(true);
         turnTimerRef.current = null;
+        isProcessingRef.current = false;
       }
     }, 1500);
-  }, [isAnimating, showTurnPopup, ownership, activeIdx, currentPlayer, players, onComplete]);
+  }, [showTurnPopup, ownership, activeIdx, currentPlayer, players, onComplete]);
 
   useEffect(() => {
     const onBleHit = (e: any) => {

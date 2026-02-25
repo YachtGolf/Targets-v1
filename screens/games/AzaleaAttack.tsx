@@ -27,7 +27,7 @@ const GOLF_REMARKS = [
   "Mashed potatoes!"
 ];
 
-const GeorgiaCalling: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) => {
+const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) => {
   // Local tournament storage
   const [tourneyPlayers, setTourneyPlayers] = useState<Player[]>([]);
   const [activePlayerIdx, setActivePlayerIdx] = useState<number | null>(null);
@@ -46,6 +46,7 @@ const GeorgiaCalling: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer })
   const [isProcessing, setIsProcessing] = useState(false);
   const [remark, setRemark] = useState<{ text: string, color: string } | null>(null);
 
+  const isProcessingRef = useRef(false);
   const activePlayer = activePlayerIdx !== null ? tourneyPlayers[activePlayerIdx] : null;
 
   // Persistence: Load leads on mount
@@ -130,26 +131,27 @@ const GeorgiaCalling: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer })
   };
 
   const handleStrike = useCallback((color: TargetColor) => {
-    if (activePlayerIdx === null || shotsTaken >= shotsPerPlayer || isProcessing) return;
+    if (activePlayerIdx === null || shotsTaken >= shotsPerPlayer || isProcessingRef.current) return;
 
+    isProcessingRef.current = true;
     setIsProcessing(true);
     const pts = TARGET_CONFIG[color].points;
     const randomRemark = GOLF_REMARKS[Math.floor(Math.random() * GOLF_REMARKS.length)];
     setRemark({ text: randomRemark, color: COLORS[color] });
 
-    const updatedPlayers = [...tourneyPlayers];
-    updatedPlayers[activePlayerIdx].score += pts;
-    updatedPlayers[activePlayerIdx].hits.push(pts);
+    setTourneyPlayers(prev => prev.map((p, i) => 
+      i === activePlayerIdx ? { ...p, score: p.score + pts, hits: [...p.hits, pts] } : p
+    ));
     
-    setTourneyPlayers(updatedPlayers);
     setCurrentHits(prev => [...prev, pts]);
     setShotsTaken(s => s + 1);
 
     setTimeout(() => {
       setIsProcessing(false);
       setRemark(null);
+      isProcessingRef.current = false;
     }, 1200);
-  }, [activePlayerIdx, shotsTaken, shotsPerPlayer, isProcessing, tourneyPlayers]);
+  }, [activePlayerIdx, shotsTaken, shotsPerPlayer]);
 
   const handleMiss = () => {
     if (activePlayerIdx === null || shotsTaken >= shotsPerPlayer || isProcessing) return;
@@ -227,7 +229,7 @@ const GeorgiaCalling: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer })
           onMouseUp={endLongPress}
           onClick={() => managementMode && setManagementMode(false)}
         >
-          <h1 className="brand-headline text-3xl md:text-4xl text-[#FBF300] italic tracking-tighter" style={{ color: MASTERS_YELLOW }}>GEORGIA CALLING</h1>
+          <h1 className="brand-headline text-3xl md:text-4xl text-[#FBF300] italic tracking-tighter" style={{ color: MASTERS_YELLOW }}>AZALEA ATTACK</h1>
           <div className="flex items-center justify-center gap-2">
             <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${managementMode ? 'bg-red-500' : 'bg-[#FBF300]'}`} />
             <span className="text-[8px] font-bold text-white/40 uppercase tracking-[0.4em]">
@@ -552,4 +554,4 @@ const GeorgiaCalling: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer })
   );
 };
 
-export default GeorgiaCalling;
+export default AzaleaAttack;

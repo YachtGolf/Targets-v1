@@ -35,6 +35,7 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
   const [loudPopup, setLoudPopup] = useState<{ text: string; sub: string; id: number } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  const isProcessingRef = useRef(false);
   const explosionCount = useRef(0);
   const popupCount = useRef(0);
   const currentPlayer = gameState[pIdx];
@@ -67,8 +68,9 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
   }, [currentPlayer, multiplier, shotsTaken]);
 
   const handleStrike = useCallback((color: TargetColor) => {
-    if (isProcessing || showTurnPopup || shotsTaken >= shotsPerPlayer) return;
+    if (isProcessingRef.current || showTurnPopup || shotsTaken >= shotsPerPlayer) return;
 
+    isProcessingRef.current = true;
     saveHistory();
     setIsProcessing(true);
     const basePts = TARGET_CONFIG[color].points;
@@ -87,12 +89,9 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
       });
     }
 
-    setGameState(prev => {
-      const next = [...prev];
-      next[pIdx].score += earnedPts;
-      next[pIdx].hits.push(earnedPts);
-      return next;
-    });
+    setGameState(prev => prev.map((p, i) => 
+      i === pIdx ? { ...p, score: p.score + earnedPts, hits: [...p.hits, earnedPts] } : p
+    ));
 
     setShotsTaken(s => s + 1);
     setMultiplier(nextMultiplier);
@@ -100,12 +99,13 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
     setTimeout(() => {
       setExplosion(null);
       setIsProcessing(false);
+      isProcessingRef.current = false;
     }, 2500); 
 
     setTimeout(() => {
       setLoudPopup(null);
     }, 4500);
-  }, [isProcessing, showTurnPopup, shotsTaken, shotsPerPlayer, multiplier, pIdx, saveHistory]);
+  }, [showTurnPopup, shotsTaken, shotsPerPlayer, multiplier, pIdx, saveHistory]);
 
   useEffect(() => {
     const onBleHit = (e: any) => {

@@ -19,11 +19,13 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
   });
   const [winner, setWinner] = useState<string | null>(null);
   const [showTurnPopup, setShowTurnPopup] = useState(true);
+  const isProcessingRef = useRef(false);
   const moveHistory = useRef<{ teamId: string, points: number }[]>([]);
 
   const handleHit = useCallback((c: TargetColor) => {
-    if (winner || showTurnPopup) return;
+    if (winner || showTurnPopup || isProcessingRef.current) return;
 
+    isProcessingRef.current = true;
     const teamId = c === 'red' ? '0' : c === 'blue' ? '1' : '2';
     const points = TARGET_CONFIG[c].points;
     
@@ -41,6 +43,11 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       }
       return { ...prev, [teamId]: newScore };
     });
+
+    // Small cooldown
+    setTimeout(() => {
+      isProcessingRef.current = false;
+    }, 500);
   }, [winner, showTurnPopup, players, onComplete]);
 
   useEffect(() => {

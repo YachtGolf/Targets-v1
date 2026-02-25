@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Player, TargetColor } from '../../types';
 import { TARGET_CONFIG, COLORS } from '../../constants';
@@ -20,6 +20,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [lastAction, setLastAction] = useState<'strike' | 'miss' | 'undo' | null>(null);
 
+  const isProcessingRef = useRef(false);
   const p = gameP[idx];
 
   const completedPlayers = gameP
@@ -27,17 +28,17 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     .sort((a, b) => b.score - a.score);
 
   const handleHit = useCallback((c: TargetColor) => {
-    if (shots >= 10 || showTurnPopup || isAnimating) return;
+    if (shots >= 10 || showTurnPopup || isProcessingRef.current) return;
     
+    isProcessingRef.current = true;
     setIsAnimating(true);
     setLastAction('strike');
     
     const pts = TARGET_CONFIG[c].points;
-    const updated = [...gameP];
-    updated[idx].score += pts;
-    updated[idx].hits.push(pts);
     
-    setGameP(updated);
+    setGameP(prev => prev.map((player, i) => 
+      i === idx ? { ...player, score: player.score + pts, hits: [...player.hits, pts] } : player
+    ));
     setShots(s => s + 1);
     setPop({ p: pts, c });
 
@@ -45,8 +46,9 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       setPop(null);
       setIsAnimating(false);
       setLastAction(null);
+      isProcessingRef.current = false;
     }, 1000);
-  }, [shots, showTurnPopup, isAnimating, gameP, idx]);
+  }, [shots, showTurnPopup, idx]);
 
   useEffect(() => {
     const onBleHit = (e: any) => {
