@@ -1,4 +1,3 @@
-
 export const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 export const BLE_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
@@ -8,7 +7,6 @@ export class BLEManager extends EventTarget {
   error: string | null = null;
 
   async connectBlue() {
-    // FIX: Cast navigator to any to access the experimental 'bluetooth' property not yet in standard Navigator types
     if (!(navigator as any).bluetooth) {
       this.error = "Web Bluetooth is not supported in this browser. Please use Chrome or Edge on macOS.";
       this.dispatchEvent(new Event('statuschange'));
@@ -20,7 +18,6 @@ export class BLEManager extends EventTarget {
       this.error = null;
       this.dispatchEvent(new Event('statuschange'));
 
-      // FIX: Cast navigator to any to access requestDevice on the experimental bluetooth property
       const device = await (navigator as any).bluetooth.requestDevice({
         filters: [
           { services: [BLE_SERVICE_UUID] },
@@ -38,10 +35,11 @@ export class BLEManager extends EventTarget {
 
       if (characteristic) {
         let lastHitTime = 0;
+        const decoder = new TextDecoder();
         await characteristic.startNotifications();
         characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
           const now = Date.now();
-          const value = new TextDecoder().decode(event.target.value);
+          const value = decoder.decode(event.target.value);
           if (value.trim() === 'HIT:BLUE' && now - lastHitTime > 500) {
             lastHitTime = now;
             window.dispatchEvent(new CustomEvent('ble-hit', { detail: { color: 'blue' } }));
