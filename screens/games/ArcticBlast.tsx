@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Player, TargetColor } from '../../types';
@@ -43,15 +42,12 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     isProcessingRef.current = true;
     setIsProcessing(true);
 
-    // Save history for undo
     setHistory(prev => [...prev, { score: currentPlayer.score, hits: [...currentPlayer.hits] }]);
 
     const earnedPts = TARGET_CONFIG[color].points;
     
-    // Trigger "Ice Shatter"
     setShatter({ id: ++shatterCount.current });
 
-    // Pick a fun random phrase
     const phrase = frostyPhrases[Math.floor(Math.random() * frostyPhrases.length)];
     setBlastPopup({ 
       text: phrase, 
@@ -66,14 +62,12 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       return next;
     });
 
-    // Reset processing state after a short delay to allow for "cooldown"
     setTimeout(() => {
       setShatter(null);
       setIsProcessing(false);
       isProcessingRef.current = false;
     }, 600); 
 
-    // Popups last longer
     setTimeout(() => {
       setBlastPopup(null);
     }, 2000);
@@ -134,11 +128,9 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   return (
     <div className="fixed inset-0 flex flex-col items-center bg-[#B9E2F5] overflow-hidden select-none">
-      {/* Glacial Background */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#E3F2FD] to-[#B9E2F5]" />
         
-        {/* Bobbing Icebergs */}
         {[...Array(5)].map((_, i) => (
           <motion.div
             key={i}
@@ -167,7 +159,6 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
           </motion.div>
         ))}
 
-        {/* Floating Snowflakes */}
         {[...Array(15)].map((_, i) => (
            <motion.div
              key={`snow-${i}`}
@@ -191,7 +182,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
       <AnimatePresence>
         {showTurnPopup && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#1F2E50]/95 backdrop-blur-xl flex flex-col items-center justify-center text-white">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#1F2E50]/98 flex flex-col items-center justify-center text-white">
             <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex flex-col items-center text-center px-10">
               <div className="w-24 h-24 rounded-full bg-blue-400 flex items-center justify-center mb-8 shadow-2xl">
                 <User size={48} className="text-white" />
@@ -211,7 +202,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       <div className="w-full flex justify-between items-center px-10 py-8 z-50 relative shrink-0">
         <button onClick={onQuit} className="p-4 bg-white/80 rounded-full shadow-lg border border-white active:scale-95 transition-transform"><X size={24} className="text-[#3C3C3C]" /></button>
         
-        <div className="bg-white/95 backdrop-blur-md px-12 py-4 rounded-full shadow-2xl border-4 border-white flex flex-col items-center">
+        <div className="bg-white/95 px-12 py-4 rounded-full shadow-2xl border-4 border-white flex flex-col items-center">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-1 text-blue-500">{currentPlayer.name}'s Frost Score</span>
           <motion.h1 key={currentPlayer.score} initial={{ scale: 1.2, y: -10 }} animate={{ scale: 1, y: 0 }} className="brand-headline text-6xl text-[#1F2E50]">
             {currentPlayer.score}
@@ -224,14 +215,14 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       <AnimatePresence>
         {completedPlayers.length > 0 && !showTurnPopup && (
           <motion.div initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="absolute left-10 top-32 z-40 flex flex-col gap-4 w-48 pointer-events-none">
-            <div className="flex items-center gap-2 mb-2 bg-white/40 backdrop-blur-sm px-3 py-1 rounded-full w-fit border border-white/30">
+            <div className="flex items-center gap-2 mb-2 bg-white/60 px-3 py-1 rounded-full w-fit border border-white/30">
               <Trophy size={14} className="text-[#1F2E50]" />
               <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[#1F2E50]">Glacial Ranks</span>
             </div>
             {completedPlayers.map((cp, i) => (
-              <motion.div key={cp.id} layout initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.1 }} className="bg-white/60 backdrop-blur-md rounded-2xl p-4 border border-white/60 shadow-sm flex items-center justify-between">
+              <motion.div key={cp.id} layout initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.1 }} className="bg-white/80 rounded-2xl p-4 border border-white/60 shadow-sm flex items-center justify-between">
                 <div className="flex flex-col overflow-hidden">
-                  <span className="text-[8px] font-black uppercase text-[#3C3C3C40] mb-0.5">#{i + 1}</span>
+                  <span className="text-[8px] font-black uppercase text-[#3C3C3C30] mb-0.5">#{i + 1}</span>
                   <span className="font-bold text-sm text-[#1F2E50] truncate">{cp.name}</span>
                 </div>
                 <span className="brand-headline text-lg text-blue-600">{cp.score}</span>
@@ -242,7 +233,6 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       </AnimatePresence>
 
       <div className="flex-1 w-full relative z-10 flex flex-col items-center justify-center">
-        {/* Polar Bear reacting to high scores */}
         <motion.div 
           animate={currentPlayer.score > 200 ? { y: [0, -15, 0], scale: [1, 1.1, 1] } : {}}
           transition={{ duration: 0.8, repeat: Infinity }}
@@ -295,7 +285,6 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
           ))}
         </div>
 
-        {/* Ice Shatter Effect */}
         <AnimatePresence>
           {shatter && (
             <motion.div 
@@ -311,7 +300,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                     initial={{ x: 0, y: 0 }}
                     animate={{ x: (Math.random() - 0.5) * 1200, y: (Math.random() - 0.5) * 1200, rotate: Math.random() * 360 }}
                     transition={{ duration: 1, ease: "easeOut" }}
-                    className="absolute w-12 h-12 bg-white/80 backdrop-blur-sm border border-white"
+                    className="absolute w-12 h-12 bg-white/90 border border-white"
                     style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }}
                    />
                  ))}
@@ -320,7 +309,6 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
           )}
         </AnimatePresence>
 
-        {/* Big Praise Popups */}
         <AnimatePresence mode="wait">
           {blastPopup && (
             <motion.div 
@@ -333,7 +321,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                <h2 className="brand-headline text-[10rem] text-white italic uppercase tracking-tighter drop-shadow-[0_10px_40px_rgba(0,0,0,0.3)] stroke-blue-500">
                  {blastPopup.text}
                </h2>
-               <div className="bg-white/80 backdrop-blur-xl px-12 py-3 rounded-full border-4 border-blue-400 shadow-2xl mt-4">
+               <div className="bg-white/95 px-12 py-3 rounded-full border-4 border-blue-400 shadow-2xl mt-4">
                  <span className="brand-headline text-4xl text-blue-600 uppercase italic">{blastPopup.sub}</span>
                </div>
             </motion.div>
@@ -341,8 +329,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
         </AnimatePresence>
       </div>
 
-      {/* Controls Deck */}
-      <div className="w-full bg-[#1F2E50]/95 backdrop-blur-2xl border-t-4 border-white/20 p-12 z-[700] flex flex-col items-center gap-10 shadow-[0_-20px_100px_rgba(0,0,0,0.5)]">
+      <div className="w-full bg-[#1F2E50]/98 border-t-4 border-white/20 p-12 z-[700] flex flex-col items-center gap-10 shadow-[0_-20px_100px_rgba(0,0,0,0.5)]">
         <div className="flex items-center gap-16">
             <div className="flex gap-4 bg-white/5 p-4 rounded-[3rem] border border-white/10">
                 {(['red', 'blue', 'green'] as TargetColor[]).map(c => (
