@@ -1,286 +1,174 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Player, TargetColor } from '../../types';
 import { TARGET_CONFIG, COLORS } from '../../constants';
-import { X, User, Snowflake, Trophy, UserMinus, Wind } from 'lucide-react';
+import { X, UserPlus, Trophy, Mail, User, RotateCcw, Zap, Play, UserMinus, Trash2, AlertTriangle } from 'lucide-react';
 
 interface Props {
-  players: Player[];
   onComplete: (p: Player[]) => void;
   onQuit: () => void;
+  shotsPerPlayer: number;
 }
 
-const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
-  const [pIdx, setPIdx] = useState(0);
-  const [gameState, setGameState] = useState(players.map(p => ({ ...p, score: 0, hits: [] })));
-  const [history, setHistory] = useState<{ score: number, hits: number[] }[]>([]);
-  const [showTurnPopup, setShowTurnPopup] = useState(true);
-  const [shatter, setShatter] = useState<{ id: number } | null>(null);
-  const [blastPopup, setBlastPopup] = useState<{ text: string; sub: string; id: number } | null>(null);
+const MASTERS_GREEN = '#006747';
+const MASTERS_YELLOW = '#FBF300';
+
+const GOLF_REMARKS = ["Get in the hole!", "Fairway finder!", "Pure!", "Dance floor!", "Pin seeker!", "Mashed potatoes!"];
+
+const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) => {
+  const [tourneyPlayers, setTourneyPlayers] = useState<Player[]>([]);
+  const [activePlayerIdx, setActivePlayerIdx] = useState<number | null>(null);
+  const [shotsTaken, setShotsTaken] = useState(0);
+  const [currentHits, setCurrentHits] = useState<number[]>([]);
+  const [managementMode, setManagementMode] = useState(false);
+  const longPressTimer = useRef<number | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const shatterCount = useRef(0);
-  const popupCount = useRef(0);
+  const [remark, setRemark] = useState<{ text: string, color: string } | null>(null);
   const isProcessingRef = useRef(false);
-  const currentPlayer = gameState[pIdx];
-
-  const frostyPhrases = ["CHILL SHOT!", "ICE COLD!", "COOL!", "FROSTY!", "BRRRRR!", "SUB-ZERO!"];
-
-  const completedPlayers = useMemo(() => {
-    return gameState.slice(0, pIdx).sort((a, b) => b.score - a.score);
-  }, [gameState, pIdx]);
-
-  const handleStrike = useCallback((color: TargetColor) => {
-    if (isProcessingRef.current || showTurnPopup) return;
-    isProcessingRef.current = true;
-    setIsProcessing(true);
-
-    const earnedPts = TARGET_CONFIG[color].points;
-    setShatter({ id: ++shatterCount.current });
-
-    const phrase = frostyPhrases[Math.floor(Math.random() * frostyPhrases.length)];
-    setBlastPopup({ text: phrase, sub: `+${earnedPts} FROST POINTS`, id: ++popupCount.current });
-
-    setGameState(prev => prev.map((p, i) => 
-      i === pIdx ? { ...p, score: p.score + earnedPts, hits: [...p.hits, earnedPts] } : p
-    ));
-
-    setTimeout(() => {
-      setShatter(null);
-      setIsProcessing(false);
-      isProcessingRef.current = false;
-    }, 600); 
-
-    setTimeout(() => setBlastPopup(null), 2000);
-  }, [showTurnPopup, pIdx, currentPlayer]);
+  const activePlayer = activePlayerIdx !== null ? tourneyPlayers[activePlayerIdx] : null;
 
   useEffect(() => {
-    const onBleHit = (e: any) => {
-      if (e.detail.color === 'blue') handleStrike('blue');
+    const savedLeads = localStorage.getItem('otd_tournament_leads');
+    if (savedLeads) {
+      try {
+        const parsed = JSON.parse(savedLeads);
+        setTourneyPlayers(parsed);
+        if (parsed.length > 0) setActivePlayerIdx(0);
+      } catch (e) { console.error(e); }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('otd_tournament_leads', JSON.stringify(tourneyPlayers));
+  }, [tourneyPlayers]);
+
+  const startLongPress = () => {
+    longPressTimer.current = window.setTimeout(() => setManagementMode(true), 3000);
+  };
+
+  const endLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
+  const handleRegister = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!regName.trim() || !regEmail.trim()) return;
+    const newPlayer: Player = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: regName.trim().toUpperCase(),
+      email: regEmail.trim(),
+      score: 0,
+      hits: []
     };
+    setTourneyPlayers(prev => [...prev, newPlayer]);
+    setRegName(''); setRegEmail('');
+    if (activePlayerIdx === null) setActivePlayerIdx(tourneyPlayers.length);
+  };
+
+  const handleStrike = useCallback((color: TargetColor) => {
+    if (activePlayerIdx === null || shotsTaken >= shotsPerPlayer || isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    setIsProcessing(true);
+    const pts = TARGET_CONFIG[color].points;
+    setRemark({ text: GOLF_REMARKS[Math.floor(Math.random() * GOLF_REMARKS.length)], color: COLORS[color] });
+    setTourneyPlayers(prev => prev.map((p, i) => 
+      i === activePlayerIdx ? { ...p, score: p.score + pts, hits: [...p.hits, pts] } : p
+    ));
+    setCurrentHits(prev => [...prev, pts]);
+    setShotsTaken(s => s + 1);
+    setTimeout(() => {
+      setIsProcessing(false); setRemark(null); isProcessingRef.current = false;
+    }, 1200);
+  }, [activePlayerIdx, shotsTaken, shotsPerPlayer]);
+
+  useEffect(() => {
+    const onBleHit = (e: any) => { if (e.detail.color === 'blue') handleStrike('blue'); };
     window.addEventListener('ble-hit', onBleHit);
     return () => window.removeEventListener('ble-hit', onBleHit);
   }, [handleStrike]);
 
-  useEffect(() => {
-    if (showTurnPopup) {
-      const timer = setTimeout(() => setShowTurnPopup(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showTurnPopup, pIdx]);
-
-  const handleRewind = () => {
-    if (history.length === 0 || isProcessing) return;
-    const last = history[history.length - 1];
-    setHistory(prev => prev.slice(0, -1));
-    setGameState(prev => {
-      const next = [...prev];
-      next[pIdx].score = last.score;
-      next[pIdx].hits = last.hits;
-      return next;
-    });
-  };
-
-  const finishTurn = () => {
-    if (pIdx < gameState.length - 1) {
-      setPIdx(pIdx + 1);
-      setHistory([]);
-      setShowTurnPopup(true);
-    } else {
-      onComplete(gameState);
-    }
-  };
-
-  const skipPlayer = () => {
-    const nextGameState = gameState.filter((_, i) => i !== pIdx);
-    if (nextGameState.length === 0) {
-      onQuit();
-      return;
-    }
-    setGameState(nextGameState);
-    if (pIdx >= nextGameState.length) {
-      onComplete(nextGameState);
-    } else {
-      setShowTurnPopup(true);
-    }
-  };
+  const sortedLeaderboard = [...tourneyPlayers].sort((a, b) => b.score - a.score);
+  const displayLeaderboard = sortedLeaderboard.slice(0, 10);
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center bg-[#B9E2F5] overflow-hidden select-none">
-      <style>{`
-        @keyframes bob {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
-        }
-        .animate-bob { animation: bob 8s ease-in-out infinite; }
-      `}</style>
-
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#E3F2FD] to-[#B9E2F5]" />
-        
-        {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute opacity-20 pointer-events-none animate-bob"
-            style={{ 
-              bottom: `${10 + i * 15}%`, 
-              left: `${i * 35 - 5}%`,
-              animationDelay: `${i * 2}s`
-            }}
-          >
-            <svg width="180" height="120" viewBox="0 0 200 150">
-              <path d="M20 150 L100 20 L180 150 Z" fill="#E3F2FD" stroke="#fff" strokeWidth="2" />
-            </svg>
-          </div>
-        ))}
-      </div>
-
-      <AnimatePresence>
-        {showTurnPopup && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#1F2E50]/98 flex flex-col items-center justify-center text-white">
-            <div className="flex flex-col items-center text-center px-10">
-              <div className="w-24 h-24 rounded-full bg-blue-400 flex items-center justify-center mb-8 shadow-2xl">
-                <User size={48} className="text-white" />
-              </div>
-              <h2 className="brand-headline text-7xl mb-2 uppercase italic">You're up,</h2>
-              <h2 className="brand-headline text-6xl uppercase italic text-blue-400">{currentPlayer.name}</h2>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="w-full flex justify-between items-center px-10 py-8 z-50 relative shrink-0">
-        <button onClick={onQuit} className="p-4 bg-white/80 rounded-full shadow-lg border border-white"><X size={24} className="text-[#3C3C3C]" /></button>
-        <div className="bg-white/95 px-12 py-4 rounded-full shadow-2xl border-4 border-white flex flex-col items-center">
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-1 text-blue-500">{currentPlayer.name}'s Frost Score</span>
-          <h1 className="brand-headline text-6xl text-[#1F2E50]">{currentPlayer.score}</h1>
+    <div className="fixed inset-0 flex flex-col bg-[#004a33] overflow-hidden select-none">
+      <header className="px-8 py-3 flex justify-between items-center z-50 border-b border-white/10 shrink-0" style={{ backgroundColor: MASTERS_GREEN }}>
+        <button onClick={onQuit} className="p-3 bg-white/10 rounded-full text-white"><X size={18} /></button>
+        <div onTouchStart={startLongPress} onTouchEnd={endLongPress} onMouseDown={startLongPress} onMouseUp={endLongPress}>
+          <h1 className="brand-headline text-3xl md:text-4xl text-[#FBF300] italic tracking-tighter">AZALEA ATTACK</h1>
         </div>
-        <div className="w-12" />
-      </div>
+        <button onClick={() => onComplete(tourneyPlayers)} className="px-5 py-2 rounded-full font-black text-[9px] uppercase tracking-widest" style={{ backgroundColor: MASTERS_YELLOW, color: MASTERS_GREEN }}>Final Standings</button>
+      </header>
 
-      <div className="flex-1 w-full relative z-10 flex flex-col items-center justify-center">
-        <div className="absolute top-0 opacity-5 pointer-events-none">
-          <svg width="240" height="160" viewBox="0 0 300 200">
-             <circle cx="150" cy="120" r="80" fill="white" />
-             <circle cx="110" cy="60" r="25" fill="white" />
-             <circle cx="190" cy="60" r="25" fill="white" />
-             <circle cx="135" cy="110" r="5" fill="#333" />
-             <circle cx="165" cy="110" r="5" fill="#333" />
-             <path d="M140 140 Q150 150 160 140" stroke="#333" strokeWidth="3" fill="none" />
-          </svg>
-        </div>
-
-        <div className="flex items-center justify-center gap-12 md:gap-24 -mt-20">
-          {(['red', 'blue', 'green'] as TargetColor[]).map((c, i) => (
-            <div key={c} className="relative animate-bob" style={{ animationDelay: `${i * 0.5}s` }}>
-              <button 
-                onClick={() => handleStrike(c)}
-                disabled={isProcessing || showTurnPopup}
-                className={`relative group transition-all ${isProcessing ? 'opacity-20 scale-95' : 'hover:scale-105 active:scale-90'}`}
-              >
-                <div 
-                  className="w-40 h-40 md:w-56 md:h-56 rounded-full border-[10px] border-white flex flex-col items-center justify-center shadow-2xl relative overflow-hidden" 
-                  style={{ backgroundColor: COLORS[c] }}
-                >
-                   <div className="text-white text-center z-10">
-                     <span className="text-6xl md:text-7xl font-black italic drop-shadow-lg">{TARGET_CONFIG[c].points}</span>
-                     <div className="text-[11px] font-black uppercase tracking-[0.3em] opacity-50">Points</div>
-                   </div>
+      <div className="flex-1 grid grid-cols-[1.4fr_2fr_1.1fr] gap-4 p-4 overflow-hidden">
+        <div className="flex flex-col overflow-hidden bg-[#e8e9e4] rounded-xl border-4 border-[#004a33] shadow-2xl relative">
+          <div className="bg-white py-3 border-b-4 border-[#004a33] flex justify-center items-center"><h2 className="text-3xl font-black tracking-[0.2em] text-[#1a1a1a] uppercase">LEADERS</h2></div>
+          <div className="flex-1 overflow-y-auto bg-white">
+            {Array.from({ length: 10 }).map((_, i) => {
+              const p = displayLeaderboard[i];
+              return (
+                <div key={i} className={`grid grid-cols-[50px_1fr_70px] border-b border-[#ccc] min-h-[44px] items-center ${activePlayer?.id === p?.id ? 'bg-[#FBF300]/20' : ''}`}>
+                  <div className="h-full border-r-2 border-[#1a1a1a] flex items-center justify-center font-black text-lg italic text-red-600">{p ? i + 1 : ''}</div>
+                  <div className="h-full border-r-2 border-[#1a1a1a] flex items-center pl-4 font-bold text-base text-[#1a1a1a] uppercase truncate">{p?.name || ''}</div>
+                  <div className="h-full flex items-center justify-center font-black text-xl text-red-600">{p ? p.score : ''}</div>
                 </div>
-              </button>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
 
-        <AnimatePresence>
-          {shatter && (
-            <motion.div 
-              key={shatter.id}
-              initial={{ scale: 0, opacity: 1 }}
-              animate={{ scale: [1, 4], opacity: [1, 0] }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[200] pointer-events-none"
-            >
-               <div className="relative">
-                 {[...Array(8)].map((_, i) => (
-                   <motion.div 
-                    key={i}
-                    animate={{ x: (Math.random() - 0.5) * 800, y: (Math.random() - 0.5) * 800 }}
-                    className="absolute w-12 h-12 bg-white/90 border border-white"
-                    style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }}
-                   />
-                 ))}
-               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence mode="wait">
-          {blastPopup && (
-            <motion.div 
-              key={blastPopup.id}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.2, opacity: 0 }}
-              className="fixed inset-0 z-[800] flex flex-col items-center justify-center pointer-events-none pb-48"
-            >
-               <h2 className="brand-headline text-[8rem] text-white italic uppercase tracking-tighter drop-shadow-2xl stroke-blue-500">
-                 {blastPopup.text}
-               </h2>
-               <div className="bg-white/95 px-12 py-3 rounded-full border-4 border-blue-400 shadow-2xl mt-4">
-                 <span className="brand-headline text-4xl text-blue-600 uppercase italic">{blastPopup.sub}</span>
-               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="w-full bg-[#1F2E50]/98 border-t-4 border-white/20 p-12 z-[700] flex flex-col items-center gap-10">
-        <div className="flex items-center gap-16">
-            <div className="flex gap-4 bg-white/5 p-4 rounded-[3rem] border border-white/10">
-                {(['red', 'blue', 'green'] as TargetColor[]).map(c => (
-                    <button 
-                        key={c}
-                        onClick={() => handleStrike(c)}
-                        disabled={isProcessing || showTurnPopup}
-                        className={`w-20 h-20 rounded-full border-[4px] border-white/40 flex items-center justify-center transition-all ${isProcessing || showTurnPopup ? 'opacity-10 grayscale' : 'hover:scale-110 active:scale-95'}`}
-                        style={{ backgroundColor: COLORS[c] }}
-                    >
-                        <Wind size={24} className="text-white" />
-                    </button>
+        <div className="flex flex-col items-center justify-center relative">
+          {activePlayer ? (
+            <div className="w-full flex flex-col items-center gap-8">
+              <div className="relative">
+                <div className="w-64 h-64 md:w-72 md:h-72 rounded-full border-[10px] border-white/10 bg-white/5 flex flex-col items-center justify-center relative shadow-2xl">
+                  <span className="brand-headline text-8xl md:text-9xl text-[#FBF300] drop-shadow-2xl">{activePlayer.score}</span>
+                  <svg className="absolute -inset-4 -rotate-90 w-[calc(100%+32px)] h-[calc(100%+32px)]" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                    <motion.circle cx="50" cy="50" r="48" fill="none" stroke={MASTERS_YELLOW} strokeWidth="2" strokeDasharray="301.6" strokeDashoffset={301.6 - (301.6 * (shotsTaken / shotsPerPlayer))} transition={{ duration: 0.5, ease: "easeInOut" }} />
+                  </svg>
+                </div>
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl shadow-xl" style={{ backgroundColor: MASTERS_YELLOW }}><span className="brand-headline text-xl uppercase italic" style={{ color: MASTERS_GREEN }}>{activePlayer.name}</span></div>
+              </div>
+              <div className="flex gap-3">
+                {Array.from({ length: shotsPerPlayer }).map((_, i) => (
+                  <div key={i} className={`h-2.5 rounded-full transition-all duration-500 ${i < shotsTaken ? (currentHits[i] > 0 ? 'bg-[#FBF300] w-8' : 'bg-white/10 w-3') : 'bg-white/5 w-3'}`} />
                 ))}
+              </div>
             </div>
-            <div className="h-20 w-[1px] bg-white/10" />
-            <div className="flex gap-8">
-                <button 
-                    onClick={handleRewind} 
-                    disabled={history.length === 0 || isProcessing} 
-                    className={`flex flex-col items-center gap-2 ${history.length === 0 || isProcessing ? 'opacity-0' : 'opacity-100'}`}
-                >
-                    <div className="w-16 h-16 rounded-full border-2 border-white/20 flex items-center justify-center bg-[#1F2E50] shadow-xl">
-                      <Snowflake size={26} className="text-white" />
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-200/40">Undo Hit</span>
-                </button>
-                <button 
-                    onClick={finishTurn} 
-                    className="bg-white text-[#1F2E50] px-16 py-8 rounded-[3rem] font-black text-2xl uppercase tracking-[0.3em] shadow-2xl border-4 border-blue-400"
-                >
-                    {pIdx === gameState.length - 1 ? 'Podium' : 'Next Player'}
-                </button>
-            </div>
+          ) : <div className="text-center opacity-20"><UserPlus size={60} className="text-white mx-auto mb-4" /><p className="brand-headline text-3xl text-white italic">ADD STRIKER TO START</p></div>}
+          <AnimatePresence>{remark && <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"><div className="px-10 py-5 rounded-full border-4 border-white" style={{ backgroundColor: remark.color }}><span className="brand-headline text-5xl text-white uppercase italic drop-shadow-lg whitespace-nowrap">{remark.text}</span></div></motion.div>}</AnimatePresence>
         </div>
-        {!showTurnPopup && (
-          <button 
-            onClick={skipPlayer}
-            className="absolute bottom-4 right-10 flex items-center gap-2 bg-[#00A49E] text-white px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all group border border-white/20"
-          >
-            <UserMinus size={14} className="text-white/80 group-hover:text-white" />
-            Skip Striker
-          </button>
-        )}
+
+        <div className="flex flex-col gap-4 overflow-hidden">
+          <div className="bg-white rounded-3xl p-6 shadow-2xl border-t-8 border-[#004a33] shrink-0">
+            <h3 className="brand-headline text-lg text-[#004a33] mb-6">CLUBHOUSE REG</h3>
+            <form onSubmit={handleRegister} className="space-y-4">
+              <input value={regName} onChange={e => setRegName(e.target.value)} className="w-full bg-gray-50 border-2 border-transparent focus:border-[#004a33] outline-none rounded-xl py-3 px-4 font-bold text-[#1a1a1a] text-sm uppercase" placeholder="PLAYER NAME" />
+              <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full bg-gray-50 border-2 border-transparent focus:border-[#004a33] outline-none rounded-xl py-3 px-4 font-bold text-[#1a1a1a] text-sm" placeholder="name@email.com" />
+              <button type="submit" className="w-full py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl" style={{ backgroundColor: MASTERS_GREEN, color: MASTERS_YELLOW }}>Register Entry</button>
+            </form>
+          </div>
+        </div>
       </div>
+
+      <footer className="border-t border-white/10 p-6 z-[700] flex flex-col items-center gap-6 shadow-2xl shrink-0" style={{ backgroundColor: MASTERS_GREEN }}>
+        <div className="flex items-center gap-10">
+          <div className="flex gap-3 bg-black/20 p-3 rounded-[2rem]">
+            {(['red', 'blue', 'green'] as TargetColor[]).map(c => (
+              <button key={c} onClick={() => handleStrike(c)} disabled={isProcessing || activePlayerIdx === null || shotsTaken >= shotsPerPlayer} className={`w-16 h-16 rounded-full border-[3px] border-white/40 flex items-center justify-center transition-all ${isProcessing || activePlayerIdx === null || shotsTaken >= shotsPerPlayer ? 'opacity-10 grayscale scale-90' : 'hover:scale-105 active:scale-95'}`} style={{ backgroundColor: COLORS[c] }}><Zap size={20} className="text-white fill-current" /></button>
+            ))}
+          </div>
+          {shotsTaken >= shotsPerPlayer && (
+            <button onClick={() => { setShotsTaken(0); setCurrentHits([]); setActivePlayerIdx(prev => (prev === null ? 0 : (prev + 1) % tourneyPlayers.length)); }} className="px-12 py-5 rounded-2xl font-black text-lg uppercase tracking-[0.3em] shadow-2xl" style={{ backgroundColor: MASTERS_YELLOW, color: MASTERS_GREEN }}>Next Striker</button>
+          )}
+        </div>
+      </footer>
     </div>
   );
 };
 
-export default ArcticBlast;
+export default AzaleaAttack;
