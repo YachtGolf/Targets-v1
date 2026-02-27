@@ -7,6 +7,7 @@ export class BLEManager extends EventTarget {
   error: string | null = null;
 
   async connectBlue() {
+    // FIX: Cast navigator to any to access the experimental 'bluetooth' property
     if (!(navigator as any).bluetooth) {
       this.error = "Web Bluetooth is not supported in this browser. Please use Chrome or Edge on macOS.";
       this.dispatchEvent(new Event('statuschange'));
@@ -63,13 +64,7 @@ export class BLEManager extends EventTarget {
     this.device = null;
     this.dispatchEvent(new Event('statuschange'));
   }
-
-  async disconnectBlue() {
-    if (this.device?.gatt?.connected) {
-      this.device.gatt.disconnect();
-    }
-    this.handleDisconnect();
-  }
 }
 
-export const bleManager = new BLEManager();
+const bleManagerInstance = new BLEManager();
+export const bleManager = bleManagerInstance;
