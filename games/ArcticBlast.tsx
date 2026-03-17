@@ -116,31 +116,19 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#E3F2FD] to-[#B9E2F5]" />
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="absolute opacity-20 pointer-events-none animate-bob" style={{ bottom: `${10 + i * 15}%`, left: `${i * 35 - 5}%`, animationDelay: `${i * 2}s` }}>
-            <svg width="180" height="120" viewBox="0 0 200 150"><path d="M20 150 L100 20 L180 150 Z" fill="#E3F2FD" stroke="#fff" strokeWidth="2" /></svg>
+          <div key={i} className="absolute opacity-10 pointer-events-none" style={{ bottom: `${10 + i * 15}%`, left: `${i * 35 - 5}%` }}>
+            <svg width="180" height="120" viewBox="0 0 200 150"><path d="M20 150 L100 20 L180 150 Z" fill="#E3F2FD" stroke="#fff" strokeWidth="1" /></svg>
           </div>
-        ))}
-        {[...Array(6)].map((_, i) => (
-           <motion.div 
-             key={`snow-${i}`} 
-             initial={{ y: -100, x: Math.random() * 2000 }} 
-             animate={{ y: 1200, x: (Math.random() - 0.5) * 200 + (Math.random() * 2000) }} 
-             transition={{ duration: 10 + Math.random() * 20, repeat: Infinity, ease: "linear", delay: Math.random() * 10 }} 
-             style={{ willChange: 'transform' }}
-             className="absolute text-white/40 pointer-events-none"
-           >
-             <Snowflake size={Math.random() * 20 + 10} />
-           </motion.div>
         ))}
       </div>
 
       <AnimatePresence>
         {showTurnPopup && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#1F2E50]/98 flex flex-col items-center justify-center text-white">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex flex-col items-center text-center px-10">
-              <div className="w-24 h-24 rounded-full bg-blue-400 flex items-center justify-center mb-8 shadow-2xl"><User size={48} className="text-white" /></div>
-              <h2 className="brand-headline text-8xl mb-2 tracking-tighter uppercase italic">You're up,</h2>
-              <h2 className="brand-headline text-7xl uppercase italic text-blue-400">{currentPlayer.name}</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#1F2E50] flex flex-col items-center justify-center text-white">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center text-center px-10">
+              <div className="w-20 h-20 rounded-full bg-blue-400 flex items-center justify-center mb-6"><User size={40} className="text-white" /></div>
+              <h2 className="brand-headline text-6xl mb-2 tracking-tighter uppercase italic">You're up,</h2>
+              <h2 className="brand-headline text-5xl uppercase italic text-blue-400">{currentPlayer.name}</h2>
             </motion.div>
           </motion.div>
         )}
@@ -148,13 +136,12 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
       <div className="w-full flex justify-between items-center px-10 py-8 z-50 relative shrink-0">
         <button onClick={onQuit} className="p-4 bg-white/80 rounded-full shadow-lg border border-white active:scale-95 transition-transform"><X size={24} className="text-[#3C3C3C]" /></button>
-        <div className="bg-white/95 px-12 py-4 rounded-full shadow-2xl border-4 border-white flex flex-col items-center">
+        <div className="bg-white/95 px-12 py-4 rounded-full shadow-lg border-4 border-white flex flex-col items-center">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-1 text-blue-500">{currentPlayer.name}'s Frost Score</span>
           <motion.h1 
             key={currentPlayer.score} 
-            initial={{ scale: 1.2, y: -10 }} 
-            animate={{ scale: 1, y: 0 }} 
-            style={{ willChange: 'transform' }}
+            initial={{ scale: 1.1 }} 
+            animate={{ scale: 1 }} 
             className="brand-headline text-6xl text-[#1F2E50]"
           >
             {currentPlayer.score}
@@ -181,17 +168,15 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
             <motion.div 
               key={shatter.id} 
               initial={{ scale: 0, opacity: 1 }} 
-              animate={{ scale: [1, 4], opacity: [1, 0] }} 
-              style={{ willChange: 'transform, opacity' }}
+              animate={{ scale: [1, 2.5], opacity: [1, 0] }} 
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[200] pointer-events-none"
             >
                <div className="relative">
-                 {[...Array(6)].map((_, i) => (
+                 {[...Array(4)].map((_, i) => (
                    <motion.div 
                      key={i} 
-                     animate={{ x: (Math.random() - 0.5) * 600, y: (Math.random() - 0.5) * 600 }} 
-                     style={{ willChange: 'transform' }}
-                     className="absolute w-10 h-10 bg-white/90" 
+                     animate={{ x: (Math.random() - 0.5) * 300, y: (Math.random() - 0.5) * 300 }} 
+                     className="absolute w-6 h-6 bg-white/80" 
                    />
                  ))}
                </div>
@@ -203,14 +188,13 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
           {blastPopup && (
             <motion.div 
               key={blastPopup.id} 
-              initial={{ scale: 0.5, opacity: 0, y: 50 }} 
-              animate={{ scale: [1, 1.2, 1], opacity: 1, y: 0 }} 
-              exit={{ scale: 2, opacity: 0 }} 
-              style={{ willChange: 'transform, opacity' }}
+              initial={{ scale: 0.8, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 1.2, opacity: 0 }} 
               className="fixed inset-0 z-[800] flex flex-col items-center justify-center pointer-events-none pb-48"
             >
-               <h2 className="brand-headline text-[10rem] text-white italic uppercase tracking-tighter drop-shadow-[0_10px_40px_rgba(0,0,0,0.3)] stroke-blue-500">{blastPopup.text}</h2>
-               <div className="bg-white/95 px-12 py-3 rounded-full border-4 border-blue-400 shadow-2xl mt-4"><span className="brand-headline text-4xl text-blue-600 uppercase italic">{blastPopup.sub}</span></div>
+               <h2 className="brand-headline text-7xl text-[#1F2E50] italic uppercase tracking-tighter text-center px-4">{blastPopup.text}</h2>
+               <div className="bg-white/95 px-8 py-2 rounded-full border-2 border-blue-400 shadow-lg mt-4"><span className="brand-headline text-2xl text-blue-600 uppercase italic">{blastPopup.sub}</span></div>
             </motion.div>
           )}
         </AnimatePresence>
