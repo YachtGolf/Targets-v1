@@ -1,34 +1,37 @@
+
 export const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 export const BLE_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
 export class BLEManager extends EventTarget {
-  device: any = null;
-  status: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
-  error: string | null = null;
+  devices: Record<string, any> = { red: null, blue: null, green: null };
+  statuses: Record<string, 'disconnected' | 'connecting' | 'connected'> = {
+    red: 'disconnected', blue: 'disconnected', green: 'disconnected'
+  };
+  errors: Record<string, string | null> = { red: null, blue: null, green: null };
 
-  async connectBlue() {
-    // FIX: Cast navigator to any to access the experimental 'bluetooth' property
+  async connect(color: 'red' | 'blue' | 'green') {
     if (!(navigator as any).bluetooth) {
-      this.error = "Web Bluetooth is not supported in this browser. Please use Chrome or Edge on macOS.";
+      this.errors[color] = "Web Bluetooth is not supported in this browser. Please use Chrome or Edge on macOS.";
       this.dispatchEvent(new Event('statuschange'));
       return;
     }
 
     try {
-      this.status = 'connecting';
-      this.error = null;
+      this.statuses[color] = 'connecting';
+      this.errors[color] = null;
       this.dispatchEvent(new Event('statuschange'));
 
+      const deviceName = `OTD_${color.toUpperCase()}_TARGET`;
       const device = await (navigator as any).bluetooth.requestDevice({
         filters: [
           { services: [BLE_SERVICE_UUID] },
-          { name: 'OTD_BLUE_TARGET' }
+          { name: deviceName }
         ],
         optionalServices: [BLE_SERVICE_UUID]
       });
 
-      this.device = device;
-      device.addEventListener('gattserverdisconnected', () => this.handleDisconnect());
+      this.devices[color] = device;
+      device.addEventListener('gattserverdisconnected', () => this.handleDisconnect(color));
 
       const server = await device.gatt?.connect();
       const service = await server?.getPrimaryService(BLE_SERVICE_UUID);
@@ -41,29 +44,45 @@ export class BLEManager extends EventTarget {
         characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
           const now = Date.now();
           const value = decoder.decode(event.target.value);
-          if (value.trim() === 'HIT:BLUE' && now - lastHitTime > 500) {
+          if (value.trim() === `HIT:${color.toUpperCase()}` && now - lastHitTime > 500) {
             lastHitTime = now;
-            window.dispatchEvent(new CustomEvent('ble-hit', { detail: { color: 'blue' } }));
+            window.dispatchEvent(new CustomEvent('ble-hit', { detail: { color } }));
           }
         });
       }
 
-      this.status = 'connected';
+      this.statuses[color] = 'connected';
       this.dispatchEvent(new Event('statuschange'));
     } catch (err: any) {
-      this.status = 'disconnected';
+      this.statuses[color] = 'disconnected';
       if (err.name !== 'NotFoundError') {
-        this.error = err.message || 'Connection failed';
+        this.errors[color] = err.message || 'Connection failed';
       }
       this.dispatchEvent(new Event('statuschange'));
     }
   }
 
-  handleDisconnect() {
-    this.status = 'disconnected';
-    this.device = null;
+  async disconnect(color: 'red' | 'blue' | 'green') {
+    const device = this.devices[color];
+    if (device && device.gatt?.connected) {
+      device.gatt.disconnect();
+    }
+    this.handleDisconnect(color);
+  }
+
+  handleDisconnect(color: 'red' | 'blue' | 'green') {
+    this.statuses[color] = 'disconnected';
+    this.devices[color] = null;
     this.dispatchEvent(new Event('statuschange'));
   }
+
+  // Legacy methods for backward compatibility if needed
+  async connectBlue() { return this.connect('blue'); }
+  async disconnectBlue() { return this.disconnect('blue'); }
+
+  // Getters for single-target compatibility if needed
+  get status() { return this.statuses.blue; }
+  get error() { return this.errors.blue; }
 }
 
 const bleManagerInstance = new BLEManager();

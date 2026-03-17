@@ -31,7 +31,7 @@ const App: React.FC = () => {
     setGameType(type);
     if (config?.shots) setShotsConfig(config.shots);
     
-    const isTeamMode = type === GameType.FIRST_TO_100 || type === GameType.CARIBBEAN_CRUSH_TEAMS;
+    const isTeamMode = type === GameType.FIRST_TO_100;
     
     if (isTeamMode) {
       setGameState(GameState.TEAM_SELECTION);
@@ -65,7 +65,7 @@ const App: React.FC = () => {
         if (gameType === GameType.TEN_TO_COUNT) return <TenToCount players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         if (gameType === GameType.COUNTDOWN_CHAOS) return <CountdownChaos players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         if (gameType === GameType.CAPTURE_THE_FLAG) return <CaptureTheFlag players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
-        if (gameType === GameType.CARIBBEAN_CRUSH || gameType === GameType.CARIBBEAN_CRUSH_TEAMS) 
+        if (gameType === GameType.CARIBBEAN_CRUSH) 
           return <CaribbeanCrush players={players} gameType={gameType} shotsPerPlayer={shotsConfig} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         if (gameType === GameType.ARCTIC_BLAST) return <ArcticBlast players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         if (gameType === GameType.BATTLESHIPS) return <Battleships players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
