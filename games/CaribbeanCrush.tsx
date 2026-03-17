@@ -198,6 +198,7 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
              <motion.div 
                animate={{ y: [0, -15, 0] }} 
                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} 
+               style={{ willChange: 'transform' }}
                className="absolute inset-0 bg-white/5"
              />
           </div>
@@ -262,10 +263,10 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
             {completedPlayers.map((cp, i) => (
               <motion.div 
                 key={cp.id}
-                layout
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: i * 0.1 }}
+                style={{ willChange: 'transform, opacity' }}
                 className="bg-white/80 rounded-2xl p-4 border border-white/60 shadow-sm flex items-center justify-between"
               >
                 <div className="flex flex-col overflow-hidden">
@@ -288,7 +289,7 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
               key={c}
               animate={{ y: [0, -20, 0], rotateX: [15, 25, 15] }}
               transition={{ duration: 8 + (i * 2), repeat: Infinity, ease: "easeInOut" }}
-              style={{ transformStyle: 'preserve-3d', transform: 'rotateX(20deg)' }}
+              style={{ transformStyle: 'preserve-3d', transform: 'rotateX(20deg)', willChange: 'transform' }}
               className="relative"
             >
               <button 
@@ -321,6 +322,7 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
               <motion.div 
                 animate={multiplier > 1 ? { scale: [1, 1.05, 1], rotate: [-1, 1, -1] } : {}}
                 transition={{ duration: 2, repeat: Infinity }}
+                style={{ willChange: 'transform' }}
                 className={`w-36 h-36 rounded-full border-4 border-white flex flex-col items-center justify-center shadow-2xl transition-all duration-1000 ${multiplier > 1 ? 'bg-orange-500 scale-125' : 'bg-white/40'}`}
               >
                  <span className={`brand-headline text-6xl italic ${multiplier > 1 ? 'text-white' : 'text-[#3C3C3C30]'}`}>x{multiplier}</span>
@@ -329,10 +331,11 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
               </motion.div>
               <div className="h-56 w-8 bg-white/40 rounded-full border border-white/30 p-1.5 relative overflow-hidden">
                  <motion.div 
-                   initial={{ height: 0 }}
-                   animate={{ height: `${(multiplier / 10) * 100}%` }}
+                   initial={{ scaleY: 0 }}
+                   animate={{ scaleY: multiplier / 10 }}
                    transition={{ duration: 1 }}
-                   className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-orange-600 to-yellow-300 rounded-full"
+                   style={{ originY: 1, willChange: 'transform' }}
+                   className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-orange-600 to-yellow-300 rounded-full"
                  />
               </div>
            </div>
@@ -344,21 +347,22 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
               key={explosion.id}
               initial={{ scale: 0, opacity: 1 }}
               animate={{ scale: [0, 5, 4.5], opacity: [1, 1, 0] }}
-              transition={{ duration: 2 }} 
+              transition={{ duration: 1.5 }} 
+              style={{ willChange: 'transform, opacity' }}
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[200] pointer-events-none"
             >
                <div className="relative">
-                 {[...Array(16)].map((_, i) => (
+                 {[...Array(8)].map((_, i) => (
                    <motion.div 
                     key={i}
                     initial={{ x: 0, y: 0 }}
-                    animate={{ x: (Math.random() - 0.5) * 800, y: (Math.random() - 0.5) * 800 }}
-                    transition={{ duration: 2.5, ease: "easeOut" }}
-                    className="absolute w-10 h-10 rounded-full shadow-2xl"
-                    style={{ backgroundColor: explosion.color }}
+                    animate={{ x: (Math.random() - 0.5) * 600, y: (Math.random() - 0.5) * 600 }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className="absolute w-8 h-8 rounded-full shadow-lg"
+                    style={{ backgroundColor: explosion.color, willChange: 'transform' }}
                    />
                  ))}
-                 <div className="text-[180px] drop-shadow-2xl">🔥</div>
+                 <div className="text-[140px] drop-shadow-2xl">🔥</div>
                </div>
             </motion.div>
           )}
@@ -370,8 +374,9 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
               key={loudPopup.id}
               initial={{ scale: 0, rotate: -15, opacity: 0 }}
               animate={{ scale: [0, 1.1, 1], rotate: [-10, 2, 0], opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0, transition: { duration: 1 } }}
-              transition={{ duration: 1.5 }}
+              exit={{ scale: 1.5, opacity: 0, transition: { duration: 0.8 } }}
+              transition={{ duration: 1 }}
+              style={{ willChange: 'transform, opacity' }}
               className="fixed inset-0 z-[600] flex flex-col items-center justify-center pointer-events-none drop-shadow-[0_40px_100px_rgba(0,0,0,0.5)]"
             >
                <h2 className="brand-headline text-[12rem] text-white italic uppercase tracking-tighter leading-none stroke-black stroke-2 shadow-text">

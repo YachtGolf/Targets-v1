@@ -121,7 +121,14 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
           </div>
         ))}
         {[...Array(6)].map((_, i) => (
-           <motion.div key={`snow-${i}`} initial={{ y: -100, x: Math.random() * 2000 }} animate={{ y: 1200, x: (Math.random() - 0.5) * 200 + (Math.random() * 2000) }} transition={{ duration: 10 + Math.random() * 20, repeat: Infinity, ease: "linear", delay: Math.random() * 10 }} className="absolute text-white/40 pointer-events-none">
+           <motion.div 
+             key={`snow-${i}`} 
+             initial={{ y: -100, x: Math.random() * 2000 }} 
+             animate={{ y: 1200, x: (Math.random() - 0.5) * 200 + (Math.random() * 2000) }} 
+             transition={{ duration: 10 + Math.random() * 20, repeat: Infinity, ease: "linear", delay: Math.random() * 10 }} 
+             style={{ willChange: 'transform' }}
+             className="absolute text-white/40 pointer-events-none"
+           >
              <Snowflake size={Math.random() * 20 + 10} />
            </motion.div>
         ))}
@@ -143,7 +150,15 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
         <button onClick={onQuit} className="p-4 bg-white/80 rounded-full shadow-lg border border-white active:scale-95 transition-transform"><X size={24} className="text-[#3C3C3C]" /></button>
         <div className="bg-white/95 px-12 py-4 rounded-full shadow-2xl border-4 border-white flex flex-col items-center">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-1 text-blue-500">{currentPlayer.name}'s Frost Score</span>
-          <motion.h1 key={currentPlayer.score} initial={{ scale: 1.2, y: -10 }} animate={{ scale: 1, y: 0 }} className="brand-headline text-6xl text-[#1F2E50]">{currentPlayer.score}</motion.h1>
+          <motion.h1 
+            key={currentPlayer.score} 
+            initial={{ scale: 1.2, y: -10 }} 
+            animate={{ scale: 1, y: 0 }} 
+            style={{ willChange: 'transform' }}
+            className="brand-headline text-6xl text-[#1F2E50]"
+          >
+            {currentPlayer.score}
+          </motion.h1>
         </div>
         <div className="w-12" />
       </div>
@@ -163,15 +178,37 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
         <AnimatePresence>
           {shatter && (
-            <motion.div key={shatter.id} initial={{ scale: 0, opacity: 1 }} animate={{ scale: [1, 4], opacity: [1, 0] }} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[200] pointer-events-none">
-               <div className="relative">{[...Array(6)].map((_, i) => (<motion.div key={i} animate={{ x: (Math.random() - 0.5) * 600, y: (Math.random() - 0.5) * 600 }} className="absolute w-10 h-10 bg-white/90" />))}</div>
+            <motion.div 
+              key={shatter.id} 
+              initial={{ scale: 0, opacity: 1 }} 
+              animate={{ scale: [1, 4], opacity: [1, 0] }} 
+              style={{ willChange: 'transform, opacity' }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[200] pointer-events-none"
+            >
+               <div className="relative">
+                 {[...Array(6)].map((_, i) => (
+                   <motion.div 
+                     key={i} 
+                     animate={{ x: (Math.random() - 0.5) * 600, y: (Math.random() - 0.5) * 600 }} 
+                     style={{ willChange: 'transform' }}
+                     className="absolute w-10 h-10 bg-white/90" 
+                   />
+                 ))}
+               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {blastPopup && (
-            <motion.div key={blastPopup.id} initial={{ scale: 0.5, opacity: 0, y: 50 }} animate={{ scale: [1, 1.2, 1], opacity: 1, y: 0 }} exit={{ scale: 2, opacity: 0 }} className="fixed inset-0 z-[800] flex flex-col items-center justify-center pointer-events-none pb-48">
+            <motion.div 
+              key={blastPopup.id} 
+              initial={{ scale: 0.5, opacity: 0, y: 50 }} 
+              animate={{ scale: [1, 1.2, 1], opacity: 1, y: 0 }} 
+              exit={{ scale: 2, opacity: 0 }} 
+              style={{ willChange: 'transform, opacity' }}
+              className="fixed inset-0 z-[800] flex flex-col items-center justify-center pointer-events-none pb-48"
+            >
                <h2 className="brand-headline text-[10rem] text-white italic uppercase tracking-tighter drop-shadow-[0_10px_40px_rgba(0,0,0,0.3)] stroke-blue-500">{blastPopup.text}</h2>
                <div className="bg-white/95 px-12 py-3 rounded-full border-4 border-blue-400 shadow-2xl mt-4"><span className="brand-headline text-4xl text-blue-600 uppercase italic">{blastPopup.sub}</span></div>
             </motion.div>
