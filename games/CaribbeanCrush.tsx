@@ -189,38 +189,21 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center bg-[#87CEEB] overflow-hidden select-none">
+    <div className="fixed inset-0 flex flex-col items-center bg-gradient-to-b from-[#00BFFF] to-[#87CEEB] overflow-hidden select-none">
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#00BFFF] to-[#87CEEB]" />
-        <div className="absolute bottom-0 left-0 w-full h-1/2 sea-perspective">
-          <div className="absolute inset-0 sea-surface bg-[#00A49E]/60 border-t-4 border-white/30 overflow-hidden">
-             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)', backgroundSize: '120px 120px' }} />
-             <motion.div 
-               animate={{ y: [0, -15, 0] }} 
-               transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} 
-               style={{ willChange: 'transform' }}
-               className="absolute inset-0 bg-white/5"
-             />
-          </div>
-        </div>
+        <div className="absolute bottom-0 left-0 w-full h-1/3 bg-[#00A49E]/20 border-t border-white/20" />
       </div>
 
       <AnimatePresence>
         {showTurnPopup && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#3C3C3C]/98 flex flex-col items-center justify-center text-white">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex flex-col items-center text-center px-10">
-              <div className="w-24 h-24 rounded-full flex items-center justify-center mb-8 shadow-2xl" style={{ backgroundColor: (isTeamMode && teamId !== null) ? teamColors[teamId] : '#00A49E' }}>
-                <User size={48} className="text-white" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#3C3C3C] flex flex-col items-center justify-center text-white">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center text-center px-10">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: (isTeamMode && teamId !== null) ? teamColors[teamId] : '#00A49E' }}>
+                <User size={40} className="text-white" />
               </div>
-              {isTeamMode && teamId !== null && (
-                <div className="flex items-center gap-2 mb-4">
-                  <Users size={14} className="text-white/40" />
-                  <span className="font-black uppercase tracking-[0.4em] text-xs" style={{ color: teamColors[teamId] }}>{teamNames[teamId]}</span>
-                </div>
-              )}
               <span className="text-[#00A49E] font-black uppercase tracking-[0.5em] text-xs mb-4 italic opacity-60">Next Crusher Ready</span>
-              <h2 className="brand-headline text-8xl mb-2 tracking-tighter uppercase italic">You're up,</h2>
-              <h2 className="brand-headline text-7xl uppercase italic" style={{ color: (isTeamMode && teamId !== null) ? teamColors[teamId] : '#00A49E' }}>{currentPlayer.name}</h2>
+              <h2 className="brand-headline text-6xl mb-2 tracking-tighter uppercase italic">You're up,</h2>
+              <h2 className="brand-headline text-5xl uppercase italic" style={{ color: (isTeamMode && teamId !== null) ? teamColors[teamId] : '#00A49E' }}>{currentPlayer.name}</h2>
             </motion.div>
           </motion.div>
         )}
@@ -229,21 +212,16 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
       <div className="w-full flex justify-between items-center px-10 py-8 z-50 relative shrink-0">
         <button onClick={onQuit} className="p-4 bg-white/80 rounded-full shadow-lg border border-white active:scale-95 transition-transform"><X size={24} className="text-[#3C3C3C]" /></button>
         
-        <div className="bg-white/95 px-10 py-3 rounded-full shadow-2xl border border-white flex flex-col items-center">
+        <div className="bg-white/95 px-10 py-3 rounded-full shadow-lg border border-white flex flex-col items-center">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-1" style={{ color: (isTeamMode && teamId !== null) ? teamColors[teamId] : '#00A49E' }}>
             {isTeamMode ? 'Team Total' : 'Total Score'}
           </span>
           <motion.h1 key={currentTeamTotal} initial={{ scale: 1.1 }} animate={{ scale: 1 }} className="brand-headline text-5xl text-[#3C3C3C]">
             {currentTeamTotal}
           </motion.h1>
-          {isTeamMode && (
-            <span className="text-[8px] font-bold text-[#3C3C3C30] uppercase tracking-widest mt-0.5">
-              {currentPlayer.name}: {currentPlayer.score}
-            </span>
-          )}
         </div>
 
-        <div className="bg-white/95 px-8 py-3 rounded-full shadow-2xl border border-white flex flex-col items-center">
+        <div className="bg-white/95 px-8 py-3 rounded-full shadow-lg border border-white flex flex-col items-center">
            <span className="text-[10px] font-black uppercase text-[#3C3C3C]/40 tracking-[0.4em] mb-1">Shot Progression</span>
            <span className="brand-headline text-4xl text-[#3C3C3C]">{shotsTaken} / {shotsPerPlayer}</span>
         </div>
@@ -282,16 +260,10 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
         )}
       </AnimatePresence>
 
-      <div className="flex-1 w-full relative z-10 flex flex-col items-center justify-center perspective-[1500px]">
+      <div className="flex-1 w-full relative z-10 flex flex-col items-center justify-center">
         <div className="flex items-center justify-center gap-12 md:gap-24 -mt-32">
           {(['red', 'blue', 'green'] as TargetColor[]).map((c, i) => (
-            <motion.div 
-              key={c}
-              animate={{ y: [0, -20, 0], rotateX: [15, 25, 15] }}
-              transition={{ duration: 8 + (i * 2), repeat: Infinity, ease: "easeInOut" }}
-              style={{ transformStyle: 'preserve-3d', transform: 'rotateX(20deg)', willChange: 'transform' }}
-              className="relative"
-            >
+            <div key={c} className="relative">
               <button 
                 onClick={() => handleStrike(c)}
                 disabled={isProcessing || showTurnPopup || shotsTaken >= shotsPerPlayer}
@@ -313,7 +285,7 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
                    </div>
                 </div>
               </button>
-            </motion.div>
+            </div>
           ))}
         </div>
 
@@ -346,23 +318,22 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
             <motion.div 
               key={explosion.id}
               initial={{ scale: 0, opacity: 1 }}
-              animate={{ scale: [0, 5, 4.5], opacity: [1, 1, 0] }}
-              transition={{ duration: 1.5 }} 
-              style={{ willChange: 'transform, opacity' }}
+              animate={{ scale: [0, 3, 2.5], opacity: [1, 1, 0] }}
+              transition={{ duration: 1 }} 
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[200] pointer-events-none"
             >
                <div className="relative">
-                 {[...Array(8)].map((_, i) => (
+                 {[...Array(4)].map((_, i) => (
                    <motion.div 
                     key={i}
                     initial={{ x: 0, y: 0 }}
-                    animate={{ x: (Math.random() - 0.5) * 600, y: (Math.random() - 0.5) * 600 }}
-                    transition={{ duration: 1.5, ease: "easeOut" }}
-                    className="absolute w-8 h-8 rounded-full shadow-lg"
-                    style={{ backgroundColor: explosion.color, willChange: 'transform' }}
+                    animate={{ x: (Math.random() - 0.5) * 400, y: (Math.random() - 0.5) * 400 }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="absolute w-6 h-6 rounded-full"
+                    style={{ backgroundColor: explosion.color }}
                    />
                  ))}
-                 <div className="text-[140px] drop-shadow-2xl">🔥</div>
+                 <div className="text-8xl">🔥</div>
                </div>
             </motion.div>
           )}
@@ -372,18 +343,16 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
           {loudPopup && (
             <motion.div 
               key={loudPopup.id}
-              initial={{ scale: 0, rotate: -15, opacity: 0 }}
-              animate={{ scale: [0, 1.1, 1], rotate: [-10, 2, 0], opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0, transition: { duration: 0.8 } }}
-              transition={{ duration: 1 }}
-              style={{ willChange: 'transform, opacity' }}
-              className="fixed inset-0 z-[600] flex flex-col items-center justify-center pointer-events-none drop-shadow-[0_40px_100px_rgba(0,0,0,0.5)]"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.2, opacity: 0 }}
+              className="fixed inset-0 z-[600] flex flex-col items-center justify-center pointer-events-none"
             >
-               <h2 className="brand-headline text-[12rem] text-white italic uppercase tracking-tighter leading-none stroke-black stroke-2 shadow-text">
+               <h2 className="brand-headline text-7xl text-white italic uppercase tracking-tighter text-center px-4">
                  {loudPopup.text}
                </h2>
-               <div className="bg-white/40 px-16 py-4 rounded-full border-[6px] border-white mt-8 shadow-2xl">
-                 <span className="brand-headline text-5xl text-white uppercase italic tracking-widest">{loudPopup.sub}</span>
+               <div className="bg-white/90 px-10 py-3 rounded-full border-2 border-white mt-4 shadow-xl">
+                 <span className="brand-headline text-3xl text-orange-500 uppercase italic tracking-widest">{loudPopup.sub}</span>
                </div>
             </motion.div>
           )}
