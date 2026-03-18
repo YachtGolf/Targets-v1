@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Player, TargetColor } from '../../types';
 import { TARGET_CONFIG, COLORS } from '../../constants';
-import { X, User, Snowflake, Trophy, UserMinus, RotateCcw, Zap } from 'lucide-react';
+import { X, User, Trophy, UserMinus, RotateCcw, Zap } from 'lucide-react';
+import { audioService } from '../../audioService';
 
 interface Props {
   players: Player[];
@@ -39,6 +40,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     if (isProcessingRef.current || showTurnPopup) return;
     isProcessingRef.current = true;
     setIsProcessing(true);
+    audioService.play('strike', color);
     setHistory(prev => [...prev, { score: currentPlayer.score, hits: [...currentPlayer.hits] }]);
     const earnedPts = TARGET_CONFIG[color].points;
     setShatter({ id: ++shatterCount.current });
@@ -61,6 +63,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   useEffect(() => {
     if (showTurnPopup) {
+      audioService.play('start');
       const timer = setTimeout(() => setShowTurnPopup(false), 3000);
       return () => clearTimeout(timer);
     }
@@ -68,6 +71,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   const handleRewind = () => {
     if (history.length === 0 || isProcessing) return;
+    audioService.play('undo');
     const last = history[history.length - 1];
     setHistory(prev => prev.slice(0, -1));
     setGameState(prev => {
@@ -81,6 +85,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   const handleMiss = () => {
     if (isProcessing || showTurnPopup) return;
+    audioService.play('miss');
     setHistory(prev => [...prev, { score: currentPlayer.score, hits: [...currentPlayer.hits] }]);
     setGameState(prev => prev.map((p, i) => 
       i === pIdx ? { ...p, hits: [...p.hits, 0] } : p
@@ -100,17 +105,20 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
   const finishTurn = () => {
     if (pIdx < gameState.length - 1) {
       setPIdx(pIdx + 1); setHistory([]); setShowTurnPopup(true);
-    } else { onComplete(gameState); }
+    } else { 
+      audioService.play('gameOver');
+      onComplete(gameState); 
+    }
   };
 
   return (
     <div className="fixed inset-0 flex flex-col items-center bg-[#B9E2F5] overflow-hidden select-none">
       <style>{`
         @keyframes bob {
-          0%, 100% { transform: translateY(0) translateZ(0); }
-          50% { transform: translateY(-15px) translateZ(0); }
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
         }
-        .animate-bob { animation: bob 8s ease-in-out infinite; will-change: transform; }
+        .animate-bob { animation: bob 8s ease-in-out infinite; }
       `}</style>
 
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -124,19 +132,27 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
       <AnimatePresence>
         {showTurnPopup && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#1F2E50] flex flex-col items-center justify-center text-white">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center text-center px-10">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#1F2E50]/80 backdrop-blur-md flex flex-col items-center justify-center text-white">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center text-center px-10 py-16 bg-white/5 rounded-[4rem] border border-white/10">
               <div className="w-20 h-20 rounded-full bg-blue-400 flex items-center justify-center mb-6"><User size={40} className="text-white" /></div>
               <h2 className="brand-headline text-6xl mb-2 tracking-tighter uppercase italic">You're up,</h2>
-              <h2 className="brand-headline text-5xl uppercase italic text-blue-400">{currentPlayer.name}</h2>
+              <h2 className="brand-headline text-5xl uppercase italic text-blue-400 pr-4">{currentPlayer.name}</h2>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <div className="w-full flex justify-between items-center px-10 py-8 z-50 relative shrink-0">
-        <button onClick={onQuit} className="p-4 bg-white/80 rounded-full shadow-lg border border-white active:scale-95 transition-transform"><X size={24} className="text-[#3C3C3C]" /></button>
-        <div className="bg-white/95 px-12 py-4 rounded-full shadow-lg border-4 border-white flex flex-col items-center">
+        <button 
+          onClick={() => {
+            audioService.play('click');
+            onQuit();
+          }} 
+          className="p-4 bg-white/80 rounded-full border border-white active:scale-95 transition-transform"
+        >
+          <X size={24} className="text-[#3C3C3C]" />
+        </button>
+        <div className="bg-white/95 px-12 py-4 rounded-full border-4 border-white flex flex-col items-center">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-1 text-blue-500">{currentPlayer.name}'s Frost Score</span>
           <motion.h1 
             key={currentPlayer.score} 
@@ -155,8 +171,8 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
           {(['red', 'blue', 'green'] as TargetColor[]).map((c, i) => (
             <div key={c} className="relative animate-bob" style={{ animationDelay: `${i * 0.5}s` }}>
               <button onClick={() => handleStrike(c)} disabled={isProcessing || showTurnPopup} className={`relative group transition-all ${isProcessing ? 'opacity-20 scale-90' : 'hover:scale-110 active:scale-95'}`}>
-                <div className="w-40 h-40 md:w-56 md:h-56 rounded-full border-[10px] border-white flex flex-col items-center justify-center shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden" style={{ backgroundColor: COLORS[c] }}>
-                   <div className="text-white text-center z-10"><span className="text-6xl md:text-7xl font-black italic drop-shadow-lg">{TARGET_CONFIG[c].points}</span><div className="text-[11px] font-black uppercase tracking-[0.3em] opacity-50">Points</div></div>
+                <div className="w-40 h-40 md:w-56 md:h-56 rounded-full border-[10px] border-white flex flex-col items-center justify-center relative overflow-hidden" style={{ backgroundColor: COLORS[c] }}>
+                   <div className="text-white text-center z-10"><span className="text-6xl md:text-7xl font-black italic">{TARGET_CONFIG[c].points}</span><div className="text-[11px] font-black uppercase tracking-[0.3em] opacity-50">Points</div></div>
                 </div>
               </button>
             </div>
@@ -194,13 +210,13 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
               className="fixed inset-0 z-[800] flex flex-col items-center justify-center pointer-events-none pb-48"
             >
                <h2 className="brand-headline text-7xl text-[#1F2E50] italic uppercase tracking-tighter text-center px-4">{blastPopup.text}</h2>
-               <div className="bg-white/95 px-8 py-2 rounded-full border-2 border-blue-400 shadow-lg mt-4"><span className="brand-headline text-2xl text-blue-600 uppercase italic">{blastPopup.sub}</span></div>
+               <div className="bg-white/95 px-8 py-2 rounded-full border-2 border-blue-400 mt-4"><span className="brand-headline text-2xl text-blue-600 uppercase italic">{blastPopup.sub}</span></div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      <div className="w-full bg-[#1F2E50]/98 border-t-4 border-white/20 p-10 z-[700] flex flex-col items-center gap-8 shadow-[0_-20px_100px_rgba(0,0,0,0.5)] relative shrink-0">
+      <div className="w-full bg-[#1F2E50]/98 border-t-4 border-white/20 p-10 z-[700] flex flex-col items-center gap-8 relative shrink-0">
         <div className="flex items-center gap-12">
             <div className="flex gap-4 bg-white/5 p-4 rounded-[2.5rem] border border-white/10">
                 {(['red', 'blue', 'green'] as TargetColor[]).map(c => (
@@ -208,7 +224,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                         key={c} 
                         onClick={() => handleStrike(c)} 
                         disabled={isProcessing || showTurnPopup} 
-                        className={`w-20 h-20 rounded-full border-[4px] border-white/40 flex items-center justify-center transition-all ${isProcessing || showTurnPopup ? 'opacity-10 scale-90' : 'hover:scale-110 active:scale-95 shadow-2xl'}`} 
+                        className={`w-20 h-20 rounded-full border-[4px] border-white/40 flex items-center justify-center transition-all ${isProcessing || showTurnPopup ? 'opacity-10 scale-90' : 'hover:scale-110 active:scale-95'}`} 
                         style={{ backgroundColor: COLORS[c] }}
                     >
                         <Zap size={24} className="text-white fill-current" />
@@ -224,7 +240,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                     disabled={history.length === 0 || isProcessing} 
                     className={`flex flex-col items-center gap-2 group transition-all ${history.length === 0 || isProcessing ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}
                 >
-                    <div className="w-16 h-16 rounded-full border-2 border-white/10 flex items-center justify-center bg-white shadow-xl">
+                    <div className="w-16 h-16 rounded-full border-2 border-white/10 flex items-center justify-center bg-white">
                         <RotateCcw size={26} className="text-[#1F2E50] stroke-[2.5px]" />
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-200/40">Undo Hit</span>
@@ -235,7 +251,7 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                     disabled={isProcessing || showTurnPopup}
                     className={`flex flex-col items-center gap-2 group transition-all ${isProcessing || showTurnPopup ? 'opacity-20 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}
                 >
-                    <div className="w-16 h-16 rounded-full border-[4px] border-blue-400 flex items-center justify-center bg-white shadow-2xl">
+                    <div className="w-16 h-16 rounded-full border-[4px] border-blue-400 flex items-center justify-center bg-white">
                         <X size={32} className="text-blue-500 stroke-[4px]" />
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400">Missed</span>
@@ -246,8 +262,11 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                     animate={{ scale: 1 }} 
                     whileHover={{ scale: 1.05 }} 
                     whileTap={{ scale: 0.95 }} 
-                    onClick={finishTurn} 
-                    className="bg-white text-[#1F2E50] px-16 py-6 rounded-[2rem] font-black text-xl uppercase tracking-[0.3em] shadow-2xl border-4 border-blue-400 group relative overflow-hidden"
+                    onClick={() => {
+                      audioService.play('click');
+                      finishTurn();
+                    }} 
+                    className="bg-white text-[#1F2E50] px-16 py-6 rounded-[2rem] font-black text-xl uppercase tracking-[0.3em] border-4 border-blue-400 group relative overflow-hidden"
                 >
                     <span className="relative z-10">{pIdx === gameState.length - 1 ? 'Podium' : 'Next Player'}</span>
                     <div className="absolute inset-0 bg-blue-50 translate-y-[100%] group-hover:translate-y-0 transition-transform" />
@@ -257,8 +276,11 @@ const ArcticBlast: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
         {!showTurnPopup && (
           <button 
-            onClick={skipPlayer}
-            className="absolute bottom-4 right-8 flex items-center gap-2 bg-blue-500 text-white px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all group border border-white/20"
+            onClick={() => {
+              audioService.play('click');
+              skipPlayer();
+            }}
+            className="absolute bottom-4 right-8 flex items-center gap-2 bg-blue-500 text-white px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all group border border-white/20"
           >
             <UserMinus size={14} className="text-white/80 group-hover:text-white" />
             Skip Player

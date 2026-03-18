@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Player, TargetColor } from '../../types';
 import { TARGET_CONFIG, COLORS } from '../../constants';
 import { X, UserPlus, Trophy, Mail, User, RotateCcw, Zap, Play, UserMinus, Trash2, AlertTriangle } from 'lucide-react';
+import { audioService } from '../../audioService';
 
 interface Props {
   onComplete: (p: Player[]) => void;
@@ -73,6 +74,7 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
     if (activePlayerIdx === null || shotsTaken >= shotsPerPlayer || isProcessingRef.current) return;
     isProcessingRef.current = true;
     setIsProcessing(true);
+    audioService.play('strike', color);
     const pts = TARGET_CONFIG[color].points;
     setRemark({ text: GOLF_REMARKS[Math.floor(Math.random() * GOLF_REMARKS.length)], color: COLORS[color] });
     setTourneyPlayers(prev => prev.map((p, i) => 
@@ -97,15 +99,26 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
   return (
     <div className="fixed inset-0 flex flex-col bg-[#004a33] overflow-hidden select-none">
       <header className="px-8 py-3 flex justify-between items-center z-50 border-b border-white/10 shrink-0" style={{ backgroundColor: MASTERS_GREEN }}>
-        <button onClick={onQuit} className="p-3 bg-white/10 rounded-full text-white"><X size={18} /></button>
+        <button 
+          onClick={() => {
+            audioService.play('click');
+            onQuit();
+          }} 
+          className="p-3 bg-white/10 rounded-full text-white"
+        >
+          <X size={18} />
+        </button>
         <div onTouchStart={startLongPress} onTouchEnd={endLongPress} onMouseDown={startLongPress} onMouseUp={endLongPress}>
           <h1 className="brand-headline text-3xl md:text-4xl text-[#FBF300] italic tracking-tighter">AZALEA ATTACK</h1>
         </div>
-        <button onClick={() => onComplete(tourneyPlayers)} className="px-5 py-2 rounded-full font-black text-[9px] uppercase tracking-widest" style={{ backgroundColor: MASTERS_YELLOW, color: MASTERS_GREEN }}>Final Standings</button>
+        <button onClick={() => {
+          audioService.play('gameOver');
+          onComplete(tourneyPlayers);
+        }} className="px-5 py-2 rounded-full font-black text-[9px] uppercase tracking-widest" style={{ backgroundColor: MASTERS_YELLOW, color: MASTERS_GREEN }}>Final Standings</button>
       </header>
 
       <div className="flex-1 grid grid-cols-[1.4fr_2fr_1.1fr] gap-4 p-4 overflow-hidden">
-        <div className="flex flex-col overflow-hidden bg-[#e8e9e4] rounded-xl border-4 border-[#004a33] shadow-2xl relative">
+        <div className="flex flex-col overflow-hidden bg-[#e8e9e4] rounded-xl border-4 border-[#004a33] relative">
           <div className="bg-white py-3 border-b-4 border-[#004a33] flex justify-center items-center"><h2 className="text-3xl font-black tracking-[0.2em] text-[#1a1a1a] uppercase">LEADERS</h2></div>
           <div className="flex-1 overflow-y-auto bg-white">
             {Array.from({ length: 10 }).map((_, i) => {
@@ -125,14 +138,14 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
           {activePlayer ? (
             <div className="w-full flex flex-col items-center gap-8">
               <div className="relative">
-                <div className="w-64 h-64 md:w-72 md:h-72 rounded-full border-[10px] border-white/10 bg-white/5 flex flex-col items-center justify-center relative shadow-2xl">
-                  <span className="brand-headline text-8xl md:text-9xl text-[#FBF300] drop-shadow-2xl">{activePlayer.score}</span>
+                <div className="w-64 h-64 md:w-72 md:h-72 rounded-full border-[10px] border-white/10 bg-white/5 flex flex-col items-center justify-center relative">
+                  <span className="brand-headline text-8xl md:text-9xl text-[#FBF300]">{activePlayer.score}</span>
                   <svg className="absolute -inset-4 -rotate-90 w-[calc(100%+32px)] h-[calc(100%+32px)]" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                     <motion.circle cx="50" cy="50" r="48" fill="none" stroke={MASTERS_YELLOW} strokeWidth="2" strokeDasharray="301.6" strokeDashoffset={301.6 - (301.6 * (shotsTaken / shotsPerPlayer))} transition={{ duration: 0.5, ease: "easeInOut" }} />
                   </svg>
                 </div>
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl shadow-xl" style={{ backgroundColor: MASTERS_YELLOW }}><span className="brand-headline text-xl uppercase italic" style={{ color: MASTERS_GREEN }}>{activePlayer.name}</span></div>
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl" style={{ backgroundColor: MASTERS_YELLOW }}><span className="brand-headline text-xl uppercase italic pr-2" style={{ color: MASTERS_GREEN }}>{activePlayer.name}</span></div>
               </div>
               <div className="flex gap-3">
                 {Array.from({ length: shotsPerPlayer }).map((_, i) => (
@@ -141,22 +154,22 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
               </div>
             </div>
           ) : <div className="text-center opacity-20"><UserPlus size={60} className="text-white mx-auto mb-4" /><p className="brand-headline text-3xl text-white italic">ADD STRIKER TO START</p></div>}
-          <AnimatePresence>{remark && <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"><div className="px-10 py-5 rounded-full border-4 border-white" style={{ backgroundColor: remark.color }}><span className="brand-headline text-5xl text-white uppercase italic drop-shadow-lg whitespace-nowrap">{remark.text}</span></div></motion.div>}</AnimatePresence>
+          <AnimatePresence>{remark && <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"><div className="px-10 py-5 rounded-full border-4 border-white" style={{ backgroundColor: remark.color }}><span className="brand-headline text-5xl text-white uppercase italic whitespace-nowrap">{remark.text}</span></div></motion.div>}</AnimatePresence>
         </div>
 
         <div className="flex flex-col gap-4 overflow-hidden">
-          <div className="bg-white rounded-3xl p-6 shadow-2xl border-t-8 border-[#004a33] shrink-0">
+          <div className="bg-white rounded-3xl p-6 border-t-8 border-[#004a33] shrink-0">
             <h3 className="brand-headline text-lg text-[#004a33] mb-6">CLUBHOUSE REG</h3>
             <form onSubmit={handleRegister} className="space-y-4">
               <input value={regName} onChange={e => setRegName(e.target.value)} className="w-full bg-gray-50 border-2 border-transparent focus:border-[#004a33] outline-none rounded-xl py-3 px-4 font-bold text-[#1a1a1a] text-sm uppercase" placeholder="PLAYER NAME" />
               <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full bg-gray-50 border-2 border-transparent focus:border-[#004a33] outline-none rounded-xl py-3 px-4 font-bold text-[#1a1a1a] text-sm" placeholder="name@email.com" />
-              <button type="submit" className="w-full py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl" style={{ backgroundColor: MASTERS_GREEN, color: MASTERS_YELLOW }}>Register Entry</button>
+              <button type="submit" className="w-full py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.2em]" style={{ backgroundColor: MASTERS_GREEN, color: MASTERS_YELLOW }}>Register Entry</button>
             </form>
           </div>
         </div>
       </div>
 
-      <footer className="border-t border-white/10 p-6 md:p-8 z-[700] flex flex-col items-center gap-6 shadow-2xl shrink-0" style={{ backgroundColor: MASTERS_GREEN }}>
+      <footer className="border-t border-white/10 p-6 md:p-8 z-[700] flex flex-col items-center gap-6 shrink-0" style={{ backgroundColor: MASTERS_GREEN }}>
         <div className="flex items-center gap-10">
             <div className="flex gap-3 bg-black/20 p-3 rounded-[2rem] border border-white/10">
                 {(['red', 'blue', 'green'] as TargetColor[]).map(c => (
@@ -164,7 +177,7 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
                         key={c}
                         onClick={() => handleStrike(c)}
                         disabled={isProcessing || activePlayerIdx === null || shotsTaken >= shotsPerPlayer}
-                        className={`w-16 h-16 rounded-full border-[3px] border-white/40 flex items-center justify-center transition-all ${isProcessing || activePlayerIdx === null || shotsTaken >= shotsPerPlayer ? 'opacity-10 grayscale scale-90' : 'hover:scale-105 active:scale-95 shadow-xl p-3 shimmer-btn'}`}
+                        className={`w-16 h-16 rounded-full border-[3px] border-white/40 flex items-center justify-center transition-all ${isProcessing || activePlayerIdx === null || shotsTaken >= shotsPerPlayer ? 'opacity-10 grayscale scale-90' : 'hover:scale-105 active:scale-95 p-3'}`}
                         style={{ backgroundColor: COLORS[c] }}
                     >
                         <Zap size={20} className="text-white fill-current" />
@@ -178,6 +191,7 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
                  <button 
                     onClick={() => {
                       if (activePlayerIdx === null || shotsTaken === 0 || isProcessing) return;
+                      audioService.play('undo');
                       const updatedPlayers = [...tourneyPlayers];
                       const lastPts = updatedPlayers[activePlayerIdx].hits.pop() || 0;
                       updatedPlayers[activePlayerIdx].score = Math.max(0, updatedPlayers[activePlayerIdx].score - lastPts);
@@ -188,7 +202,7 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
                     disabled={shotsTaken === 0 || isProcessing || activePlayerIdx === null} 
                     className={`flex flex-col items-center gap-1.5 group transition-all ${shotsTaken === 0 || activePlayerIdx === null ? 'opacity-20' : 'opacity-100 hover:scale-105 active:scale-95'}`}
                 >
-                    <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center bg-white shadow-xl">
+                    <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center bg-white">
                     <RotateCcw size={22} className="stroke-[2.5px]" style={{ color: MASTERS_GREEN }} />
                     </div>
                     <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40">Undo</span>
@@ -197,6 +211,7 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
                 <button 
                     onClick={() => {
                       if (tourneyPlayers.length === 0) return;
+                      audioService.play('click');
                       setShotsTaken(0);
                       setCurrentHits([]);
                       setActivePlayerIdx(prev => (prev === null ? 0 : (prev + 1) % tourneyPlayers.length));
@@ -204,7 +219,7 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
                     disabled={activePlayerIdx === null || isProcessing}
                     className={`flex flex-col items-center gap-1.5 group transition-all ${activePlayerIdx === null || isProcessing ? 'opacity-20' : 'opacity-100 hover:scale-105 active:scale-95'}`}
                 >
-                    <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center bg-white shadow-xl">
+                    <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center bg-white">
                     <UserMinus size={22} className="stroke-[2.5px]" style={{ color: MASTERS_GREEN }} />
                     </div>
                     <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40">Skip</span>
@@ -214,6 +229,7 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
                 <button 
                     onClick={() => {
                       if (activePlayerIdx === null || shotsTaken >= shotsPerPlayer || isProcessing) return;
+                      audioService.play('miss');
                       setIsProcessing(true);
                       setRemark({ text: "Tough break...", color: '#999' });
                       const updatedPlayers = [...tourneyPlayers];
@@ -226,7 +242,7 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
                     disabled={isProcessing || activePlayerIdx === null}
                     className={`flex flex-col items-center gap-1.5 group transition-all ${isProcessing || activePlayerIdx === null ? 'opacity-20 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}
                 >
-                    <div className="w-14 h-14 rounded-full border-[3px] flex items-center justify-center bg-white shadow-2xl" style={{ borderColor: MASTERS_YELLOW }}>
+                    <div className="w-14 h-14 rounded-full border-[3px] flex items-center justify-center bg-white" style={{ borderColor: MASTERS_YELLOW }}>
                     <X size={26} className="stroke-[4px]" style={{ color: MASTERS_YELLOW }} />
                     </div>
                     <span className="text-[8px] font-black uppercase tracking-[0.4em]" style={{ color: MASTERS_YELLOW }}>Missed</span>
@@ -238,8 +254,9 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
                       setShotsTaken(0);
                       setCurrentHits([]);
                       setActivePlayerIdx(prev => (prev === null ? 0 : (prev + 1) % tourneyPlayers.length));
+                      audioService.play('start');
                     }} 
-                    className="px-12 py-5 rounded-2xl font-black text-lg uppercase tracking-[0.3em] shadow-2xl border-2 border-white/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
+                    className="px-12 py-5 rounded-2xl font-black text-lg uppercase tracking-[0.3em] border-2 border-white/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
                     style={{ backgroundColor: MASTERS_YELLOW, color: MASTERS_GREEN }}
                 >
                     <Play size={20} className="fill-current" />
