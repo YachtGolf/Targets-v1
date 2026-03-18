@@ -11,15 +11,24 @@ class AudioService {
     if (!this.audioCtx) {
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    if (this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
-    }
     return this.audioCtx;
+  }
+
+  public async resume() {
+    const ctx = this.initContext();
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
   }
 
   private playTone(freq: number, type: OscillatorType, duration: number, volume: number = 0.1, decay: boolean = true) {
     if (!this.enabled) return;
     const ctx = this.initContext();
+    
+    // On iOS, we still try to resume just in case, though it usually needs a direct user gesture
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 

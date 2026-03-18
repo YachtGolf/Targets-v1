@@ -11,7 +11,7 @@ export class BLEManager extends EventTarget {
 
   async connect(color: 'red' | 'blue' | 'green') {
     if (!(navigator as any).bluetooth) {
-      this.errors[color] = "Web Bluetooth is not supported in this browser. Please use Chrome or Edge on macOS.";
+      this.errors[color] = "Web Bluetooth is not supported in this browser. Please use a compatible browser like Bluefy (iOS) or Chrome/Edge (Desktop).";
       this.dispatchEvent(new Event('statuschange'));
       return;
     }
