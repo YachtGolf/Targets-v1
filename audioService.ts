@@ -14,10 +14,23 @@ class AudioService {
     return this.audioCtx;
   }
 
-  public async resume() {
+  public resume() {
     const ctx = this.initContext();
     if (ctx.state === 'suspended') {
-      await ctx.resume();
+      ctx.resume();
+    }
+    
+    // Create and play a silent oscillator to fully "prime" the audio engine on iOS
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(0);
+      osc.stop(ctx.currentTime + 0.1);
+    } catch (e) {
+      console.warn("Audio unlock failed", e);
     }
   }
 
