@@ -234,7 +234,7 @@ const CaribbeanCrush: React.FC<Props> = ({ players, gameType, shotsPerPlayer, on
         
         <div className="bg-white px-10 py-3 rounded-full border border-gray-200 flex flex-col items-center">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-1" style={{ color: (isTeamMode && teamId !== null) ? teamColors[teamId] : '#00A49E' }}>
-            {isTeamMode ? 'Team Total' : 'Total Score'}
+            {currentPlayer.name} Chillout
           </span>
           <h1 className="brand-headline text-5xl text-[#3C3C3C]">
             {currentTeamTotal}

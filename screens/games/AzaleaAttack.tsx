@@ -96,6 +96,28 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
   const sortedLeaderboard = [...tourneyPlayers].sort((a, b) => b.score - a.score);
   const displayLeaderboard = sortedLeaderboard.slice(0, 10);
 
+  const handleDeletePlayer = (id: string) => {
+    audioService.play('remove');
+    setTourneyPlayers(prev => {
+      const filtered = prev.filter(p => p.id !== id);
+      if (activePlayerIdx !== null && activePlayerIdx >= filtered.length) {
+        setActivePlayerIdx(filtered.length > 0 ? 0 : null);
+      }
+      return filtered;
+    });
+  };
+
+  const handleResetLeaderboard = () => {
+    audioService.play('gameOver');
+    setTourneyPlayers([]);
+    setActivePlayerIdx(null);
+    setShotsTaken(0);
+    setCurrentHits([]);
+    setShowResetConfirm(false);
+    setManagementMode(false);
+    localStorage.removeItem('otd_tournament_leads');
+  };
+
   return (
     <div className="fixed inset-0 flex flex-col bg-[#004a33] overflow-hidden select-none">
       <header className="px-8 py-3 flex justify-between items-center z-50 border-b border-white/10 shrink-0" style={{ backgroundColor: MASTERS_GREEN }}>
@@ -119,19 +141,51 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
 
       <div className="flex-1 grid grid-cols-[1.4fr_2fr_1.1fr] gap-4 p-4 overflow-hidden">
         <div className="flex flex-col overflow-hidden bg-[#e8e9e4] rounded-xl border-4 border-[#004a33] relative">
-          <div className="bg-white py-3 border-b-4 border-[#004a33] flex justify-center items-center"><h2 className="text-3xl font-black tracking-[0.2em] text-[#1a1a1a] uppercase">LEADERS</h2></div>
+          <div className="bg-white py-3 border-b-4 border-[#004a33] flex justify-between items-center px-4">
+            <div className="w-8" />
+            <h2 className="text-3xl font-black tracking-[0.2em] text-[#1a1a1a] uppercase">LEADERS</h2>
+            {managementMode ? (
+              <button 
+                onClick={() => setManagementMode(false)}
+                className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            ) : <div className="w-8" />}
+          </div>
           <div className="flex-1 overflow-y-auto bg-white">
             {Array.from({ length: 10 }).map((_, i) => {
               const p = displayLeaderboard[i];
               return (
-                <div key={i} className={`grid grid-cols-[50px_1fr_70px] border-b border-[#ccc] min-h-[44px] items-center ${activePlayer?.id === p?.id ? 'bg-[#FBF300]/20' : ''}`}>
+                <div key={i} className={`grid grid-cols-[50px_1fr_70px_auto] border-b border-[#ccc] min-h-[44px] items-center ${activePlayer?.id === p?.id ? 'bg-[#FBF300]/20' : ''}`}>
                   <div className="h-full border-r-2 border-[#1a1a1a] flex items-center justify-center font-black text-lg italic text-red-600">{p ? i + 1 : ''}</div>
                   <div className="h-full border-r-2 border-[#1a1a1a] flex items-center pl-4 font-bold text-base text-[#1a1a1a] uppercase truncate">{p?.name || ''}</div>
-                  <div className="h-full flex items-center justify-center font-black text-xl text-red-600">{p ? p.score : ''}</div>
+                  <div className="h-full border-r-2 border-[#1a1a1a] flex items-center justify-center font-black text-xl text-red-600">{p ? p.score : ''}</div>
+                  <div className="px-2">
+                    {managementMode && p && (
+                      <button 
+                        onClick={() => handleDeletePlayer(p.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
+          {managementMode && tourneyPlayers.length > 0 && (
+            <div className="p-4 bg-white border-t-4 border-[#004a33]">
+              <button 
+                onClick={() => setShowResetConfirm(true)}
+                className="w-full py-3 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+              >
+                <AlertTriangle size={14} />
+                Clear All Data
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col items-center justify-center relative">
@@ -266,6 +320,44 @@ const AzaleaAttack: React.FC<Props> = ({ onComplete, onQuit, shotsPerPlayer }) =
             </div>
         </div>
       </footer>
+      {/* Reset Confirmation Overlay */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-3xl p-8 max-w-sm w-full text-center"
+            >
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle size={40} className="text-red-600" />
+              </div>
+              <h2 className="text-2xl font-black text-[#1a1a1a] mb-2 uppercase italic">Wipe Database?</h2>
+              <p className="text-sm text-gray-500 mb-8 font-medium">This will permanently delete all players and scores from the tournament. This cannot be undone.</p>
+              
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={handleResetLeaderboard}
+                  className="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs"
+                >
+                  Yes, Clear Everything
+                </button>
+                <button 
+                  onClick={() => setShowResetConfirm(false)}
+                  className="w-full py-4 bg-gray-100 text-[#1a1a1a] rounded-2xl font-black uppercase tracking-widest text-xs"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player } from '../types';
 import { Users, Radio, Play, ShoppingCart, Database, Download, Volume2, VolumeX } from 'lucide-react';
 import { COLORS } from '../constants';
@@ -14,6 +14,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
   const longPressTimer = useRef<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(audioService.isEnabled());
+  const [isLaunching, setIsLaunching] = useState(false);
 
   const toggleSound = () => {
     audioService.toggle();
@@ -69,13 +70,33 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
     }
   };
 
+  const handleLaunch = () => {
+    audioService.resume();
+    audioService.play('launch');
+    setIsLaunching(true);
+    setTimeout(() => {
+      onNavigate(GameState.GAMES_MENU);
+    }, 600);
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      animate={{ opacity: 1, scale: isLaunching ? 1.05 : 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       className="relative flex flex-col items-center justify-center h-full w-full max-h-screen py-1 md:py-4 gap-4 md:gap-8"
     >
+      <AnimatePresence>
+        {isLaunching && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="fixed inset-0 bg-white z-[100] pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
       {/* Sound Toggle */}
       <div className="absolute top-4 right-4 z-50">
         <motion.button
@@ -144,7 +165,10 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
       <div className="flex flex-col gap-2.5 w-full max-w-xs z-20">
         <motion.button 
           whileTap={{ scale: 0.98 }}
-          onClick={() => onNavigate(GameState.ADD_PLAYERS)}
+          onClick={() => {
+            audioService.resume();
+            onNavigate(GameState.ADD_PLAYERS);
+          }}
           className="flex items-center justify-between bg-white text-[#3C3C3C] py-3.5 px-6 rounded-xl border border-[#3C3C3C]/5 group transition-colors"
         >
           <span className="font-bold text-[9px] uppercase tracking-[0.2em]">Add Players</span>
@@ -155,7 +179,10 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
 
         <motion.button 
           whileTap={{ scale: 0.98 }}
-          onClick={() => onNavigate(GameState.CONNECT_TARGETS)}
+          onClick={() => {
+            audioService.resume();
+            onNavigate(GameState.CONNECT_TARGETS);
+          }}
           className="flex items-center justify-between bg-white/80 text-[#3C3C3C] py-3.5 px-6 rounded-xl border border-white group"
         >
           <span className="font-bold text-[9px] uppercase tracking-[0.2em]">Connect Targets</span>
@@ -169,7 +196,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
       <div className="flex flex-col items-center gap-4 md:gap-6 z-20">
         <motion.button 
           whileTap={{ scale: 0.95 }}
-          onClick={() => onNavigate(GameState.GAMES_MENU)}
+          onClick={handleLaunch}
           className="w-28 h-28 md:w-36 md:h-36 bg-[#00A49E] text-white rounded-full flex items-center justify-center relative overflow-hidden group border-4 md:border-8 border-white"
         >
           <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />

@@ -17,6 +17,7 @@ import AzaleaAttack from './screens/games/AzaleaAttack';
 import Podium from './screens/Podium';
 import { GameState, Player, GameType, TargetColor } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { audioService } from './audioService';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MAIN_MENU);
@@ -26,6 +27,11 @@ const App: React.FC = () => {
     red: false, blue: false, green: false
   });
   const [shotsConfig, setShotsConfig] = useState(10);
+
+  // Global Audio Unlock for iOS/iPad
+  const handleGlobalClick = () => {
+    audioService.resume();
+  };
 
   const handleStart = (type: GameType, config?: any) => {
     setGameType(type);
@@ -79,9 +85,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout showWatermark={gameState !== GameState.MAIN_MENU}>
-      {render()}
-    </Layout>
+    <div onClick={handleGlobalClick} onTouchStart={handleGlobalClick}>
+      <Layout showWatermark={gameState !== GameState.MAIN_MENU}>
+        {render()}
+      </Layout>
+    </div>
   );
 };
 

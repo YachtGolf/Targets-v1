@@ -5,6 +5,7 @@ import { ArrowLeft, Radio, Bluetooth, ShieldAlert, WifiOff } from 'lucide-react'
 import { TargetColor } from '../types';
 import { TARGET_CONFIG, COLORS } from '../constants';
 import { bleManager } from '../bleManager';
+import { audioService } from '../audioService';
 
 interface ConnectTargetsProps {
   onBack: () => void;
@@ -49,7 +50,10 @@ const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTarget
             <div key={color} className="flex flex-col items-center gap-6">
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={() => onToggleTarget(color)}
+                onClick={() => {
+                  audioService.play('connect');
+                  onToggleTarget(color);
+                }}
                 className="flex flex-col items-center gap-8 group"
               >
                 <div 

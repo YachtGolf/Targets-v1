@@ -62,15 +62,38 @@ class AudioService {
     osc.stop(ctx.currentTime + duration);
   }
 
-  public play(soundName: 'strike' | 'streak' | 'start' | 'gameOver' | 'miss' | 'undo' | 'click' | 'confirm' | 'remove' | 'tick' | 'tock' | 'jeopardy', color?: 'red' | 'blue' | 'green') {
+  public play(soundName: 'strike' | 'streak' | 'start' | 'gameOver' | 'miss' | 'undo' | 'click' | 'confirm' | 'remove' | 'tick' | 'tock' | 'jeopardy' | 'connect' | 'launch', color?: 'red' | 'blue' | 'green') {
     if (!this.enabled) return;
 
     switch (soundName) {
       case 'tick':
-        this.playTone(1200, 'sine', 0.02, 0.02);
+        this.playTone(1200, 'sine', 0.02, 0.08); // Increased from 0.02
         break;
       case 'tock':
-        this.playTone(800, 'sine', 0.02, 0.02);
+        this.playTone(800, 'sine', 0.02, 0.08); // Increased from 0.02
+        break;
+      case 'connect':
+        // Positive rising "chirp"
+        [600, 800, 1000].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'sine', 0.1, 0.05), i * 60);
+        });
+        break;
+      case 'launch':
+        // Dramatic sweeping "Launch" sound
+        const launchCtx = this.initContext();
+        const launchOsc = launchCtx.createOscillator();
+        const launchGain = launchCtx.createGain();
+        launchOsc.type = 'sawtooth';
+        launchOsc.frequency.setValueAtTime(100, launchCtx.currentTime);
+        launchOsc.frequency.exponentialRampToValueAtTime(800, launchCtx.currentTime + 0.5);
+        launchGain.gain.setValueAtTime(0.1, launchCtx.currentTime);
+        launchGain.gain.exponentialRampToValueAtTime(0.001, launchCtx.currentTime + 0.5);
+        launchOsc.connect(launchGain);
+        launchGain.connect(launchCtx.destination);
+        launchOsc.start();
+        launchOsc.stop(launchCtx.currentTime + 0.5);
+        // Add a high-pitched "ping" at the end
+        setTimeout(() => this.playTone(1200, 'sine', 0.2, 0.05), 400);
         break;
       case 'jeopardy':
         // Sharp, high-pitched double-tick
