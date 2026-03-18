@@ -26,19 +26,26 @@ export class BLEManager extends EventTarget {
 
       const deviceName = `OTD_${color.toUpperCase()}_TARGET`;
       
-      // Try to find previously paired device first to avoid picker if possible
+      // 1. Try to find previously paired device first (Ghost Connection Hijack)
       let device: any = null;
       if ((navigator as any).bluetooth.getDevices) {
-        const devices = await (navigator as any).bluetooth.getDevices();
-        device = devices.find((d: any) => d.name === deviceName);
+        try {
+          const devices = await (navigator as any).bluetooth.getDevices();
+          device = devices.find((d: any) => d.name === deviceName);
+          if (device) {
+            console.log(`BLE: Found known device ${deviceName}, attempting direct connection...`);
+          }
+        } catch (e) {
+          console.warn("BLE: getDevices failed", e);
+        }
       }
 
-      // If not found in previous devices, show picker
+      // 2. If not found or connection fails, show picker with RELAXED filters
       if (!device) {
         device = await (navigator as any).bluetooth.requestDevice({
           filters: [
-            { services: [BLE_SERVICE_UUID] },
-            { name: deviceName }
+            { name: deviceName }, // Filter by name only first (more reliable for some chips)
+            { services: [BLE_SERVICE_UUID] } // Or by service
           ],
           optionalServices: [BLE_SERVICE_UUID]
         });
@@ -49,8 +56,37 @@ export class BLEManager extends EventTarget {
       this.statuses[color] = 'disconnected';
       if (err.name !== 'NotFoundError') {
         this.errors[color] = err.message || 'Connection failed';
+        console.error(`BLE: Connection error for ${color}`, err);
       }
       this.dispatchEvent(new Event('statuschange'));
+    }
+  }
+
+  // Force-clear all sessions and state
+  async resetAll() {
+    console.log("BLE: Resetting all Bluetooth states...");
+    for (const color of ['red', 'blue', 'green'] as const) {
+      this.reconnecting[color] = false;
+      const device = this.devices[color];
+      if (device && device.gatt?.connected) {
+        try {
+          device.gatt.disconnect();
+        } catch (e) {}
+      }
+      this.devices[color] = null;
+      this.statuses[color] = 'disconnected';
+      this.errors[color] = null;
+    }
+    this.dispatchEvent(new Event('statuschange'));
+    
+    // If browser supports it, try to "forget" devices to force a clean slate
+    if ((navigator as any).bluetooth.getDevices) {
+      try {
+        const devices = await (navigator as any).bluetooth.getDevices();
+        for (const device of devices) {
+          if (device.forget) await device.forget();
+        }
+      } catch (e) {}
     }
   }
 
