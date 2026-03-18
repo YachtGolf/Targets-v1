@@ -53,7 +53,7 @@ const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTarget
                 className="flex flex-col items-center gap-8 group"
               >
                 <div 
-                  className={`w-40 h-40 rounded-full border-[10px] flex items-center justify-center transition-all duration-700 ${isLinked || isBleConnected ? 'border-white ring-8 ring-[#00A49E]/20 shadow-2xl scale-110' : 'border-white/20 grayscale opacity-40'}`}
+                  className={`w-40 h-40 rounded-full border-[10px] flex items-center justify-center transition-all duration-700 ${isLinked || isBleConnected ? 'border-white scale-110' : 'border-white/20 grayscale opacity-40'}`}
                   style={{ backgroundColor: COLORS[color] }}
                 >
                   <div className="text-white text-center">
@@ -72,7 +72,7 @@ const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTarget
 
               <div className="mt-4 flex flex-col items-center gap-3">
                 <div className="h-[1px] w-24 bg-[#3C3C3C10] mb-2" />
-                <div className="flex flex-col items-center gap-2 bg-white/40 p-4 rounded-3xl border border-white/60 shadow-sm">
+                <div className="flex flex-col items-center gap-2 bg-white/40 p-4 rounded-3xl border border-white/60">
                   <div className="flex items-center gap-2 mb-2">
                     <Bluetooth size={14} className={bleStatus === 'connecting' ? 'animate-spin text-[#00A49E]' : 'text-[#3C3C3C30]'} />
                     <span className="text-[9px] font-black uppercase tracking-widest text-[#3C3C3C40]">Bluetooth Engine</span>
@@ -81,7 +81,7 @@ const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTarget
                   {bleStatus === 'disconnected' ? (
                     <button 
                       onClick={() => bleManager.connect(color)}
-                      className="bg-[#3C3C3C] text-[#00A49E] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-md"
+                      className="bg-[#3C3C3C] text-[#00A49E] px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all"
                     >
                       Pair {config.label} Target
                     </button>
@@ -90,7 +90,7 @@ const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTarget
                   ) : (
                     <button 
                       onClick={() => bleManager.disconnect(color)}
-                      className="bg-white text-red-500 border border-red-100 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all shadow-sm"
+                      className="bg-white text-red-500 border border-red-100 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all"
                     >
                       Disconnect
                     </button>
@@ -116,7 +116,7 @@ const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTarget
             <span className="text-[10px] font-black uppercase tracking-widest">Running in Simulation Mode</span>
           </div>
         )}
-        <button onClick={onBack} className="w-full max-w-2xl bg-white text-[#3C3C3C] py-6 rounded-2xl font-black text-lg uppercase tracking-[0.3em] shadow-sm border border-[#3C3C3C]/5 hover:bg-gray-50 transition-all">
+        <button onClick={onBack} className="w-full max-w-2xl bg-white text-[#3C3C3C] py-6 rounded-2xl font-black text-lg uppercase tracking-[0.3em] border border-[#3C3C3C]/5 hover:bg-gray-50 transition-all">
           Confirm Links
         </button>
       </div>

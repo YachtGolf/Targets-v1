@@ -2,8 +2,9 @@
 import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { GameState, Player } from '../types';
-import { Users, Radio, Play, ShoppingCart, Database, Download } from 'lucide-react';
+import { Users, Radio, Play, ShoppingCart, Database, Download, Volume2, VolumeX } from 'lucide-react';
 import { COLORS } from '../constants';
+import { audioService } from '../audioService';
 
 interface MainMenuProps {
   onNavigate: (state: GameState) => void;
@@ -12,6 +13,12 @@ interface MainMenuProps {
 const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
   const longPressTimer = useRef<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(audioService.isEnabled());
+
+  const toggleSound = () => {
+    audioService.toggle();
+    setSoundEnabled(audioService.isEnabled());
+  };
 
   // Secret Lead Export Function
   const handleExportLeads = () => {
@@ -69,6 +76,17 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
       exit={{ opacity: 0, scale: 0.98 }}
       className="relative flex flex-col items-center justify-center h-full w-full max-h-screen py-1 md:py-4 gap-4 md:gap-8"
     >
+      {/* Sound Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={toggleSound}
+          className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 text-[#3C3C3C]/60"
+        >
+          {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+        </motion.button>
+      </div>
+
       {/* Top Branding Section */}
       <div className="flex flex-col items-center w-full">
         <div 
@@ -80,8 +98,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
         >
           <div className="relative w-32 md:w-44 lg:w-48 mb-2 md:mb-4 flex items-center justify-center">
             <motion.img
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.1 }}
               src="/logo.png"
               alt="Off the Deck Logo"
@@ -101,8 +119,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
             </div>
           </div>
           <motion.h1 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             className="brand-headline text-6xl md:text-8xl lg:text-9xl text-[#3C3C3C] leading-none tracking-tighter"
           >
@@ -110,8 +128,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
           </motion.h1>
           
           <motion.div 
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 0.6, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.6 }}
             transition={{ delay: 0.4 }}
             className="mt-1"
           >
@@ -125,10 +143,9 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
       {/* Navigation Buttons Stack */}
       <div className="flex flex-col gap-2.5 w-full max-w-xs z-20">
         <motion.button 
-          whileHover={{ scale: 1.02, backgroundColor: COLORS.accent, color: '#fff' }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onNavigate(GameState.ADD_PLAYERS)}
-          className="flex items-center justify-between bg-white text-[#3C3C3C] py-3.5 px-6 rounded-xl shadow-sm border border-[#3C3C3C]/5 group transition-colors shimmer-btn"
+          className="flex items-center justify-between bg-white text-[#3C3C3C] py-3.5 px-6 rounded-xl border border-[#3C3C3C]/5 group transition-colors"
         >
           <span className="font-bold text-[9px] uppercase tracking-[0.2em]">Add Players</span>
           <span className="text-[#00A49E] group-hover:text-white">
@@ -137,10 +154,9 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
         </motion.button>
 
         <motion.button 
-          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onNavigate(GameState.CONNECT_TARGETS)}
-          className="flex items-center justify-between bg-white/80 text-[#3C3C3C] py-3.5 px-6 rounded-xl border border-white group shimmer-btn"
+          className="flex items-center justify-between bg-white/80 text-[#3C3C3C] py-3.5 px-6 rounded-xl border border-white group"
         >
           <span className="font-bold text-[9px] uppercase tracking-[0.2em]">Connect Targets</span>
           <div className="flex items-center gap-2">
@@ -152,10 +168,9 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
       {/* Play Action & Footer Section */}
       <div className="flex flex-col items-center gap-4 md:gap-6 z-20">
         <motion.button 
-          whileHover={{ scale: 1.05, boxShadow: "0 15px 30px rgba(0, 164, 158, 0.2)" }}
           whileTap={{ scale: 0.95 }}
           onClick={() => onNavigate(GameState.GAMES_MENU)}
-          className="w-28 h-28 md:w-36 md:h-36 bg-[#00A49E] text-white rounded-full flex items-center justify-center shadow-2xl relative overflow-hidden group border-4 md:border-8 border-white shimmer-btn"
+          className="w-28 h-28 md:w-36 md:h-36 bg-[#00A49E] text-white rounded-full flex items-center justify-center relative overflow-hidden group border-4 md:border-8 border-white"
         >
           <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           <Play className="fill-current ml-1 w-10 h-10 md:w-16 md:h-16" />
@@ -171,9 +186,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
             href="https://www.offthedeck.com/product-page/plain-b1e-biodegradable-golf-ball-250-balls"
             target="_blank"
             rel="noopener noreferrer"
-            whileHover={{ scale: 1.05, y: -1 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 bg-white/90 text-[#3C3C3C] py-1.5 px-4 rounded-full border border-white shadow-sm group transition-all"
+            className="flex items-center gap-2 bg-white/90 text-[#3C3C3C] py-1.5 px-4 rounded-full border border-white group transition-all"
           >
             <span className="font-black text-[8px] uppercase tracking-[0.2em]">Order Balls</span>
             <ShoppingCart size={10} className="text-[#3C3C3C]/40 group-hover:text-[#00A49E] transition-colors" />

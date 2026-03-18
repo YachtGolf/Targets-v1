@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Player, TargetColor } from '../../types';
 import { TARGET_CONFIG, COLORS } from '../../constants';
 import { X, Zap, Trophy, RotateCcw } from 'lucide-react';
+import { audioService } from '../../audioService';
 
 interface Props {
   players: Player[];
@@ -26,6 +27,7 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     if (winner || showTurnPopup || isProcessingRef.current) return;
 
     isProcessingRef.current = true;
+    audioService.play('strike');
     const teamId = c === 'red' ? '0' : c === 'blue' ? '1' : '2';
     const points = TARGET_CONFIG[c].points;
     
@@ -34,6 +36,7 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       moveHistory.current.push({ teamId, points });
       if (newScore >= 100 && !winner) {
         setWinner(teamId);
+        audioService.play('gameOver');
         setTimeout(() => {
           onComplete(players.map(p => ({
             ...p,
@@ -60,6 +63,7 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   useEffect(() => {
     if (showTurnPopup) {
+      audioService.play('start');
       const timer = setTimeout(() => setShowTurnPopup(false), 3000);
       return () => clearTimeout(timer);
     }
@@ -91,15 +95,15 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[1000] bg-[#3C3C3C]/98 flex flex-col items-center justify-center text-white"
+            className="fixed inset-0 z-[1000] bg-[#3C3C3C]/80 backdrop-blur-md flex flex-col items-center justify-center text-white"
           >
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -20, opacity: 0 }}
-              className="flex flex-col items-center text-center px-10"
+              className="flex flex-col items-center text-center px-10 py-16 bg-white/5 rounded-[4rem] border border-white/10"
             >
-              <div className="w-24 h-24 rounded-full bg-[#00A49E] flex items-center justify-center mb-8 shadow-2xl">
+              <div className="w-24 h-24 rounded-full bg-[#00A49E] flex items-center justify-center mb-8">
                 <Trophy size={48} className="text-white" />
               </div>
               <span className="text-[#00A49E] font-black uppercase tracking-[0.5em] text-xs mb-4">Challenge Start</span>
@@ -132,7 +136,7 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
         <div className="grid grid-cols-3 gap-8 flex-1 items-end px-12 pb-12">
           {buckets.map(b => (
             <div key={b.id} className="flex flex-col items-center gap-6 h-full justify-end">
-              <div className="relative w-full max-w-[120px] flex-1 bg-white/40 rounded-full border border-white/60 shadow-inner overflow-hidden flex flex-col justify-end">
+              <div className="relative w-full max-w-[120px] flex-1 bg-white/40 rounded-full border border-white/60 overflow-hidden flex flex-col justify-end">
                 <motion.div
                   initial={{ height: 0 }}
                   animate={{ height: `${(teamScores[b.id] / 100) * 100}%` }}
@@ -152,7 +156,7 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
           ))}
         </div>
 
-        <div className="bg-white/95 p-12 rounded-[4rem] border border-white shadow-2xl mx-12 flex flex-col items-center gap-8">
+        <div className="bg-white/95 p-12 rounded-[4rem] border border-white mx-12 flex flex-col items-center gap-8">
           <span className="text-[9px] font-black uppercase text-[#3C3C3C30] tracking-[0.4em]">Strike Solution</span>
           <div className="flex flex-col items-center gap-6">
             <div className="flex gap-12">
@@ -164,7 +168,7 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                   className={`group flex flex-col items-center gap-4 transition-all ${!!winner || showTurnPopup ? 'opacity-10 cursor-not-allowed' : 'hover:scale-110 active:scale-95'}`}
                 >
                   <div 
-                    className="w-24 h-24 rounded-full flex items-center justify-center border-4 border-white shadow-xl transition-all group-hover:shadow-[#00A49E]/30" 
+                    className="w-24 h-24 rounded-full flex items-center justify-center border-4 border-white transition-all" 
                     style={{ backgroundColor: COLORS[c] }}
                   >
                     <Zap size={32} className="text-white fill-current" />
@@ -179,7 +183,7 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
               disabled={!!winner || moveHistory.current.length === 0 || showTurnPopup}
               className={`flex flex-col items-center gap-2 group transition-all ${!!winner || moveHistory.current.length === 0 || showTurnPopup ? 'opacity-0' : 'opacity-100 hover:scale-105 active:scale-95'}`}
             >
-              <div className="w-14 h-14 rounded-full border-2 border-[#3C3C3C15] flex items-center justify-center bg-white shadow-sm group-hover:bg-[#3C3C3C05] transition-colors">
+              <div className="w-14 h-14 rounded-full border-2 border-[#3C3C3C15] flex items-center justify-center bg-white group-hover:bg-[#3C3C3C05] transition-colors">
                 <RotateCcw size={22} className="text-[#3C3C3C] stroke-[2.5px]" />
               </div>
               <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[#3C3C3C40]">Rewind Last Strike</span>
@@ -190,7 +194,7 @@ const FirstTo100: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
       <AnimatePresence>
         {winner && (
-          <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="fixed inset-0 z-[100] bg-white/95 flex flex-col items-center justify-center">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] bg-white/95 flex flex-col items-center justify-center">
             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#00A49E] mb-4">Victory</span>
             <h2 className="brand-headline text-8xl text-[#3C3C3C] mb-2">{winner === '0' ? 'Red' : winner === '1' ? 'Blue' : 'Green'} Team</h2>
             <p className="font-black uppercase tracking-widest text-[#3C3C3C40]">Dominance Secured</p>

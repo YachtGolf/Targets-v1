@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Player, Fleet, TargetColor, Ship } from '../../types';
 import { COLORS } from '../../constants';
 import { X, Anchor, Zap, Target, Radar, User, RotateCcw, Check } from 'lucide-react';
+import { audioService } from '../../audioService';
 
 interface Props {
   players: Player[];
@@ -60,6 +61,7 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     if (shipIdx === -1) return;
 
     isProcessing.current = true;
+    audioService.play('strike', c);
     setHistory(prev => [...prev, { fleets: JSON.parse(JSON.stringify(fleets)), activeIdx }]);
 
     const shipToUpdate = defenderFleet.ships[shipIdx];
@@ -82,6 +84,9 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     });
 
     setExplosion({ sunk: isSunk });
+    if (isSunk) {
+      audioService.play('streak');
+    }
 
     setTimeout(() => {
       setExplosion(null);
@@ -95,6 +100,7 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       });
 
       if (allSunk) {
+        audioService.play('gameOver');
         onComplete(players.map(p => ({ 
           ...p, 
           score: p.id === battlePlayers[activeIdx].id ? 100 : 0 
@@ -125,6 +131,7 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   useEffect(() => {
     if (showTurnPopup) {
+      audioService.play('start');
       const timer = setTimeout(() => setShowTurnPopup(false), 3000);
       return () => clearTimeout(timer);
     }
@@ -153,6 +160,7 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   const handleRewind = () => {
     if (history.length === 0 || isProcessing.current) return;
+    audioService.play('undo');
     const lastState = history[history.length - 1];
     setFleets(lastState.fleets);
     setActiveIdx(lastState.activeIdx);
@@ -207,14 +215,14 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
   const ShipComponent: React.FC<{ ship: Ship; index: number; isPassive?: boolean }> = ({ ship, index, isPassive = false }) => {
     return (
       <motion.div 
-        animate={ship.isSunk ? { y: isPassive ? 15 : 25, opacity: 0.1, filter: 'grayscale(100%) brightness(0.6)' } : { y: [0, -3, 0], rotateZ: [-0.5, 0.5, -0.5] }}
+        animate={ship.isSunk ? { y: isPassive ? 15 : 25, opacity: 0.1 } : { y: [0, -3, 0], rotateZ: [-0.5, 0.5, -0.5] }}
         transition={ship.isSunk ? { duration: 1.5 } : { duration: 3 + index, repeat: Infinity, ease: 'easeInOut' }}
         className="flex flex-col items-center gap-3"
       >
         <ShipVisual ship={ship} size={isPassive ? "sm" : "md"} />
         <div className="flex gap-2 min-h-[14px] items-center justify-center bg-black/5 px-2.5 py-1 rounded-full border border-white/10">
           {Array.from({ length: ship.maxHits }).map((_, i) => (
-            <div key={i} className={`w-2.5 h-2.5 rounded-full border border-black/5 transition-all duration-500 ${i < ship.currentHits ? 'bg-[#E11D48] scale-110 shadow-[0_0_8px_rgba(225,29,72,0.4)]' : 'bg-white'}`} />
+            <div key={i} className={`w-2.5 h-2.5 rounded-full border border-black/5 transition-all duration-500 ${i < ship.currentHits ? 'bg-[#E11D48] scale-110' : 'bg-white'}`} />
           ))}
         </div>
       </motion.div>
@@ -225,7 +233,15 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full h-full flex flex-col items-center py-6">
         <div className="w-full flex justify-between items-center mb-12 px-10">
-          <button onClick={onQuit} className="p-4 bg-white/60 rounded-full"><X size={20} /></button>
+          <button 
+            onClick={() => {
+              audioService.play('click');
+              onQuit();
+            }} 
+            className="p-4 bg-white/60 rounded-full"
+          >
+            <X size={20} />
+          </button>
           <div className="text-center">
             <span className="text-[#00A49E] font-black uppercase tracking-[0.4em] text-[10px]">Battleship Duel</span>
             <h1 className="brand-headline text-4xl text-[#3C3C3C]">Select Combatants</h1>
@@ -256,7 +272,7 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
            <button 
              onClick={handleStartGame}
              disabled={selectedPlayerIds.length !== 2}
-             className="w-full bg-[#3C3C3C] text-[#00A49E] py-6 rounded-2xl font-black text-lg uppercase tracking-[0.4em] shadow-2xl disabled:opacity-20 transition-all"
+             className="w-full bg-[#3C3C3C] text-[#00A49E] py-6 rounded-2xl font-black text-lg uppercase tracking-[0.4em] disabled:opacity-20 transition-all"
            >
              Initialize Fleet Combat
            </button>
@@ -277,19 +293,25 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     <div className="fixed inset-0 flex flex-col bg-[#DEE1DA] overflow-hidden select-none pb-safe">
       <AnimatePresence>
         {showTurnPopup && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#3C3C3C]/98 flex flex-col items-center justify-center text-white">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex flex-col items-center text-center px-10">
-              <div className="w-24 h-24 rounded-full bg-[#00A49E] flex items-center justify-center mb-8 shadow-2xl"><User size={48} className="text-white" /></div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] bg-[#3C3C3C]/80 backdrop-blur-md flex flex-col items-center justify-center text-white">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex flex-col items-center text-center px-10 py-16 bg-white/5 rounded-[4rem] border border-white/10">
+              <div className="w-24 h-24 rounded-full bg-[#00A49E] flex items-center justify-center mb-8"><User size={48} className="text-white" /></div>
               <span className="text-[#00A49E] font-black uppercase tracking-[0.5em] text-xs mb-4">Tactical Swap</span>
               <h2 className="brand-headline text-7xl md:text-8xl mb-2 tracking-tighter uppercase italic">You're up,</h2>
-              <h2 className="brand-headline text-6xl md:text-7xl text-[#00A49E] uppercase italic truncate max-w-[80vw]">{attacker.name}</h2>
+              <h2 className="brand-headline text-6xl md:text-7xl text-[#00A49E] uppercase italic truncate max-w-[80vw] pr-4">{attacker.name}</h2>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <header className="px-8 py-2 flex justify-between items-center z-50 shrink-0 border-b border-white/20 bg-white/10">
-        <button onClick={onQuit} className="p-2.5 bg-white/90 rounded-full shadow-lg border border-white active:scale-95 transition-transform">
+        <button 
+          onClick={() => {
+            audioService.play('click');
+            onQuit();
+          }} 
+          className="p-2.5 bg-white/90 rounded-full border border-white active:scale-95 transition-transform"
+        >
           <X size={18} className="text-[#3C3C3C]" />
         </button>
         <div className="flex items-center gap-8">
@@ -307,8 +329,8 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       </header>
 
       <div className="flex-1 grid grid-rows-[1fr_auto_1fr] w-full max-w-5xl mx-auto px-4 relative overflow-hidden">
-        <div className="relative flex flex-col items-center justify-center bg-blue-900/5 rounded-[2rem] border border-white/40 shadow-inner my-0.5 overflow-hidden">
-          <div className="absolute top-3 flex items-center gap-2 px-3 py-1 bg-white/80 rounded-full border border-white/50 shadow-sm z-10">
+        <div className="relative flex flex-col items-center justify-center bg-blue-900/5 rounded-[2rem] border border-white/40 my-0.5 overflow-hidden">
+          <div className="absolute top-3 flex items-center gap-2 px-3 py-1 bg-white/80 rounded-full border border-white/50 z-10">
              <Target size={12} className="text-[#00A49E]" /><span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#3C3C3C]">{defender.name}'s Fleet</span>
           </div>
           <div className="flex justify-center items-end gap-3 md:gap-8 pt-8">
@@ -317,7 +339,7 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
         </div>
         
         <div className="z-[100] flex justify-center py-0.5 shrink-0">
-           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white/98 rounded-[2.5rem] px-6 py-3 shadow-2xl border border-white flex flex-col items-center gap-2">
+           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white/98 rounded-[2.5rem] px-6 py-3 border border-white flex flex-col items-center gap-2">
              <div className="flex flex-col items-center gap-0">
                <span className="text-[8px] font-black uppercase tracking-[0.6em] text-[#00A49E]">Striker Control</span>
                <span className="brand-headline text-sm text-[#3C3C3C]">{attacker.name.toUpperCase()}</span>
@@ -328,7 +350,7 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                  const disabled = isSunk || !!explosion || isRotating || showTurnPopup;
                  return (
                    <button key={c} onClick={() => handleHit(c)} disabled={disabled} className={`group relative flex flex-col items-center transition-all ${disabled ? 'opacity-10 grayscale' : 'hover:scale-110 active:scale-95'}`}>
-                     <div className="w-14 h-14 rounded-full flex items-center justify-center border-4 border-white shadow-2xl" style={{ backgroundColor: COLORS[c] }}><Zap size={18} className="text-white fill-current" /></div>
+                     <div className="w-14 h-14 rounded-full flex items-center justify-center border-4 border-white" style={{ backgroundColor: COLORS[c] }}><Zap size={18} className="text-white fill-current" /></div>
                    </button>
                  );
                })}
@@ -337,11 +359,11 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                <div className="h-[1px] w-1/2 bg-[#3C3C3C15]" />
                <div className="flex gap-6">
                 <button onClick={handleRewind} disabled={history.length === 0} className={`flex flex-col items-center gap-1 group transition-all ${history.length === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}>
-                  <div className="w-10 h-10 rounded-full border-2 border-[#3C3C3C15] flex items-center justify-center bg-white shadow-sm group-hover:bg-[#3C3C3C05] transition-colors"><RotateCcw size={18} className="text-[#3C3C3C] stroke-[2.5px]" /></div>
+                  <div className="w-10 h-10 rounded-full border-2 border-[#3C3C3C15] flex items-center justify-center bg-white group-hover:bg-[#3C3C3C05] transition-colors"><RotateCcw size={18} className="text-[#3C3C3C] stroke-[2.5px]" /></div>
                   <span className="text-[7px] font-black uppercase tracking-[0.4em] text-[#3C3C3C40]">Rewind</span>
                 </button>
                 <button onClick={handleMiss} disabled={!!explosion || isRotating || showTurnPopup} className={`flex flex-col items-center gap-1 group transition-all ${isRotating || showTurnPopup ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}>
-                  <div className="w-10 h-10 rounded-full border-2 border-[#00A49E40] flex items-center justify-center bg-white shadow-sm group-hover:bg-[#00A49E10] transition-colors"><X size={20} className="text-[#00A49E] stroke-[3.5px]" /></div>
+                  <div className="w-10 h-10 rounded-full border-2 border-[#00A49E40] flex items-center justify-center bg-white group-hover:bg-[#00A49E10] transition-colors"><X size={20} className="text-[#00A49E] stroke-[3.5px]" /></div>
                   <span className="text-[7px] font-black uppercase tracking-[0.4em] text-[#00A49E]">Missed Shot</span>
                 </button>
                </div>
@@ -349,7 +371,7 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
            </motion.div>
         </div>
  
-        <div className="relative flex flex-col items-center justify-center bg-[#00A49E]/5 rounded-[2rem] border border-white/20 shadow-inner my-0.5 opacity-50 overflow-hidden">
+        <div className="relative flex flex-col items-center justify-center bg-[#00A49E]/5 rounded-[2rem] border border-white/20 my-0.5 opacity-50 overflow-hidden">
            <div className="absolute bottom-3 flex items-center gap-2 px-3 py-1 bg-white/40 rounded-full border border-white/30 z-10">
              <Anchor size={12} className="text-[#3C3C3C]/40" /><span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#3C3C3C]/40">{attacker.name}'s Fleet</span>
           </div>
@@ -359,7 +381,7 @@ const Battleships: React.FC<Props> = ({ players, onComplete, onQuit }) => {
         </div>
       </div>
       <AnimatePresence>
-        {explosion && <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: explosion.sunk ? [1, 5, 4.5] : [1, 3, 2.5], opacity: [1, 1, 0], transition: { duration: explosion.sunk ? 2 : 1.2 } }} className="fixed z-[300] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none drop-shadow-2xl text-[180px]">💥</motion.div>}
+        {explosion && <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: explosion.sunk ? [1, 5, 4.5] : [1, 3, 2.5], opacity: [1, 1, 0], transition: { duration: explosion.sunk ? 2 : 1.2 } }} className="fixed z-[300] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-[180px]">💥</motion.div>}
       </AnimatePresence>
     </div>
   );

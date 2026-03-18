@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Player, TargetColor } from '../../types';
 import { TARGET_CONFIG, COLORS } from '../../constants';
 import { X, User, RotateCcw, Trophy, UserMinus, Zap } from 'lucide-react';
+import { audioService } from '../../audioService';
 
 interface Props {
   players: Player[];
@@ -32,6 +33,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
     if (shots >= 10 || showTurnPopup || isProcessingRef.current) return;
     
     isProcessingRef.current = true;
+    audioService.play('strike', c);
     setIsAnimating(true);
     setLastAction('strike');
     
@@ -59,6 +61,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   useEffect(() => {
     if (showTurnPopup) {
+      audioService.play('start');
       const timer = setTimeout(() => setShowTurnPopup(false), 3000);
       return () => clearTimeout(timer);
     }
@@ -67,6 +70,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
   const handleMiss = () => {
     if (shots >= 10 || showTurnPopup || isAnimating) return;
     
+    audioService.play('miss');
     setIsAnimating(true);
     setLastAction('miss');
     
@@ -84,6 +88,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
 
   const handleRewind = () => {
     if (shots === 0 || isAnimating) return;
+    audioService.play('undo');
 
     setIsAnimating(true);
     setLastAction('undo');
@@ -124,6 +129,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       setShots(0);
       setShowTurnPopup(true);
     } else {
+      audioService.play('gameOver');
       onComplete(gameP);
     }
   };
@@ -136,27 +142,35 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[1000] bg-[#3C3C3C]/98 flex flex-col items-center justify-center text-white"
+            className="fixed inset-0 z-[1000] bg-[#3C3C3C]/80 backdrop-blur-md flex flex-col items-center justify-center text-white"
           >
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -20, opacity: 0 }}
-              className="flex flex-col items-center text-center px-10"
+              className="flex flex-col items-center text-center px-10 py-16 bg-white/5 rounded-[4rem] border border-white/10"
             >
-              <div className="w-24 h-24 rounded-full bg-[#00A49E] flex items-center justify-center mb-8 shadow-2xl">
+              <div className="w-24 h-24 rounded-full bg-[#00A49E] flex items-center justify-center mb-8">
                 <User size={48} className="text-white" />
               </div>
               <span className="text-[#00A49E] font-black uppercase tracking-[0.5em] text-xs mb-4">Striker Ready</span>
               <h2 className="brand-headline text-7xl md:text-8xl mb-2 tracking-tighter">You're up,</h2>
-              <h2 className="brand-headline text-6xl md:text-7xl text-[#00A49E] uppercase italic truncate max-w-[80vw]">{p.name}</h2>
+              <h2 className="brand-headline text-6xl md:text-7xl text-[#00A49E] uppercase italic truncate max-w-[80vw] pr-4">{p.name}</h2>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <div className="w-full flex justify-between items-center mb-10 px-6 z-50">
-        <button onClick={onQuit} className="p-4 bg-white/60 rounded-full"><X size={20} /></button>
+        <button 
+          onClick={() => {
+            audioService.play('click');
+            onQuit();
+          }} 
+          className="p-4 bg-white/60 rounded-full"
+        >
+          <X size={20} />
+        </button>
         <div className="text-center">
           <span className="text-[#00A49E] font-black uppercase tracking-[0.4em] text-[9px]">Standard Series</span>
           <h1 className="brand-headline text-4xl text-[#3C3C3C]">{p.name}</h1>
@@ -182,7 +196,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white/80 rounded-2xl p-4 border border-white/60 shadow-sm flex items-center justify-between"
+                className="bg-white/80 rounded-2xl p-4 border border-white/60 flex items-center justify-between"
               >
                 <div className="flex flex-col overflow-hidden">
                   <span className="text-[8px] font-black uppercase text-[#3C3C3C30] mb-0.5">Rank {i + 1}</span>
@@ -198,7 +212,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col items-center justify-center gap-10 w-full max-w-xl">
-        <div className="relative w-72 h-72 bg-white rounded-full flex flex-col items-center justify-center shadow-2xl border-4 border-white">
+        <div className="relative w-72 h-72 bg-white rounded-full flex flex-col items-center justify-center border-4 border-white">
           <motion.span key={p.score} initial={{ scale: 1.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="brand-headline text-8xl text-[#3C3C3C]">
             {p.score}
           </motion.span>
@@ -222,7 +236,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
         </div>
       </div>
 
-      <div className="w-full bg-[#3C3C3C]/98 border-t border-white/10 p-10 z-[700] flex flex-col items-center gap-8 shadow-[0_-20px_100px_rgba(0,0,0,0.3)] relative shrink-0">
+      <div className="w-full bg-[#3C3C3C]/98 border-t border-white/10 p-10 z-[700] flex flex-col items-center gap-8 relative shrink-0">
         <div className="flex items-center gap-12">
             <div className="flex gap-4 bg-black/20 p-4 rounded-[2.5rem] border border-white/10">
                 {(['red', 'blue', 'green'] as TargetColor[]).map(c => (
@@ -230,7 +244,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                         key={c}
                         onClick={() => handleHit(c)}
                         disabled={shots >= 10 || showTurnPopup || isAnimating}
-                        className={`w-20 h-20 rounded-full border-[4px] border-white/40 flex items-center justify-center transition-all ${shots >= 10 || showTurnPopup || isAnimating ? 'opacity-10 grayscale' : 'hover:scale-105 active:scale-95 shadow-xl'}`}
+                        className={`w-20 h-20 rounded-full border-[4px] border-white/40 flex items-center justify-center transition-all ${shots >= 10 || showTurnPopup || isAnimating ? 'opacity-10 grayscale' : 'hover:scale-105 active:scale-95'}`}
                         style={{ backgroundColor: COLORS[c] }}
                     >
                         <Zap size={24} className="text-white fill-current" />
@@ -246,7 +260,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                     disabled={shots === 0 || isAnimating} 
                     className={`flex flex-col items-center gap-2 group transition-all ${shots === 0 || isAnimating ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}
                 >
-                    <div className="w-16 h-16 rounded-full border-2 border-white/10 flex items-center justify-center bg-white shadow-xl">
+                    <div className="w-16 h-16 rounded-full border-2 border-white/10 flex items-center justify-center bg-white">
                     <RotateCcw size={26} className="text-[#3C3C3C] stroke-[2.5px]" />
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Undo Shot</span>
@@ -258,7 +272,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                     disabled={isAnimating || showTurnPopup}
                     className={`flex flex-col items-center gap-2 group transition-all ${isAnimating || showTurnPopup ? 'opacity-20 pointer-events-none' : 'opacity-100 hover:scale-105 active:scale-95'}`}
                 >
-                    <div className="w-16 h-16 rounded-full border-[4px] border-[#00A49E] flex items-center justify-center bg-white shadow-2xl">
+                    <div className="w-16 h-16 rounded-full border-[4px] border-[#00A49E] flex items-center justify-center bg-white">
                     <X size={32} className="text-[#00A49E] stroke-[4px]" />
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#00A49E]">Missed Target</span>
@@ -267,7 +281,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
                 <motion.button 
                     initial={{ scale: 0.9 }} animate={{ scale: 1 }}
                     onClick={next} 
-                    className="bg-[#00A49E] text-white px-16 py-6 rounded-[2rem] font-black text-xl uppercase tracking-[0.3em] shadow-2xl border-2 border-white/20 hover:scale-105 active:scale-95 transition-all"
+                    className="bg-[#00A49E] text-white px-16 py-6 rounded-[2rem] font-black text-xl uppercase tracking-[0.3em] border-2 border-white/20 hover:scale-105 active:scale-95 transition-all"
                 >
                     {idx === gameP.length - 1 ? 'Podium' : 'Next Player'}
                 </motion.button>
@@ -278,7 +292,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
         {!showTurnPopup && (
           <button 
             onClick={skipPlayer}
-            className="absolute bottom-4 right-8 flex items-center gap-2 bg-[#00A49E] text-white px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all group border border-white/20"
+            className="absolute bottom-4 right-8 flex items-center gap-2 bg-[#00A49E] text-white px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all group border border-white/20"
           >
             <UserMinus size={14} className="text-white/80 group-hover:text-white" />
             Skip Player
@@ -289,7 +303,7 @@ const TenToCount: React.FC<Props> = ({ players, onComplete, onQuit }) => {
       <AnimatePresence>
         {isAnimating && lastAction && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 1.2 }} className="fixed bottom-1/2 left-1/2 -translate-x-1/2 z-[500] pointer-events-none">
-            <div className="bg-white/95 px-10 py-5 rounded-[2rem] shadow-2xl border border-white">
+            <div className="bg-white/95 px-10 py-5 rounded-[2rem] border border-white">
                <span className="brand-headline text-6xl text-[#3C3C3C] uppercase tracking-tighter">
                  {lastAction === 'strike' ? 'STRIKE!' : lastAction === 'miss' ? 'MISSED' : 'REVERTED'}
                </span>
