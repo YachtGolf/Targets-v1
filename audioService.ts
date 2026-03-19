@@ -2,6 +2,7 @@ class AudioService {
   private sfxEnabled: boolean = true;
   private musicEnabled: boolean = true;
   private audioCtx: AudioContext | null = null;
+  private masterCompressor: DynamicsCompressorNode | null = null;
   private themeGain: GainNode | null = null;
   private themeBuffer: AudioBuffer | null = null;
   private themeSource: AudioBufferSourceNode | null = null;
@@ -17,10 +18,20 @@ class AudioService {
   private initContext() {
     if (!this.audioCtx) {
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create a master compressor to prevent digital clipping/crackling
+      this.masterCompressor = this.audioCtx.createDynamicsCompressor();
+      this.masterCompressor.threshold.setValueAtTime(-20, this.audioCtx.currentTime);
+      this.masterCompressor.knee.setValueAtTime(30, this.audioCtx.currentTime);
+      this.masterCompressor.ratio.setValueAtTime(12, this.audioCtx.currentTime);
+      this.masterCompressor.attack.setValueAtTime(0.003, this.audioCtx.currentTime);
+      this.masterCompressor.release.setValueAtTime(0.25, this.audioCtx.currentTime);
+      this.masterCompressor.connect(this.audioCtx.destination);
     }
-    if (!this.themeGain && this.audioCtx) {
+    
+    if (!this.themeGain && this.audioCtx && this.masterCompressor) {
       this.themeGain = this.audioCtx.createGain();
-      this.themeGain.connect(this.audioCtx.destination);
+      this.themeGain.connect(this.masterCompressor);
     }
     return this.audioCtx;
   }
@@ -61,13 +72,13 @@ class AudioService {
       const freq = melody[i];
       const crescendo = 1 + (i / melody.length) * 0.5;
 
-      // Melody
+      // Melody - Using SINE waves for maximum smoothness on iPad
       const osc = offlineCtx.createOscillator();
       const gain = offlineCtx.createGain();
-      osc.type = 'triangle';
+      osc.type = 'sine'; 
       osc.frequency.setValueAtTime(freq, time);
       gain.gain.setValueAtTime(0, time);
-      gain.gain.linearRampToValueAtTime(0.03 * crescendo, time + 0.01);
+      gain.gain.linearRampToValueAtTime(0.04 * crescendo, time + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.001, time + beatDuration * 0.8);
       osc.connect(gain);
       gain.connect(offlineCtx.destination);
@@ -84,7 +95,7 @@ class AudioService {
         const bassFreq = (i % 6 === 0) ? bassFreqs[bar] : bassFreqs[bar] * 1.5;
         bassOsc.frequency.setValueAtTime(bassFreq, time);
         bassGain.gain.setValueAtTime(0, time);
-        bassGain.gain.linearRampToValueAtTime(0.05 * crescendo, time + 0.01);
+        bassGain.gain.linearRampToValueAtTime(0.06 * crescendo, time + 0.01);
         bassGain.gain.exponentialRampToValueAtTime(0.001, time + beatDuration * 1.5);
         bassOsc.connect(bassGain);
         bassGain.connect(offlineCtx.destination);
@@ -124,6 +135,7 @@ class AudioService {
   private playTone(freq: number, type: OscillatorType, duration: number, volume: number = 0.1, decay: boolean = true) {
     if (!this.sfxEnabled) return;
     const ctx = this.initContext();
+    if (!this.masterCompressor) return;
     
     if (ctx.state === 'suspended') {
       ctx.resume();
@@ -143,7 +155,7 @@ class AudioService {
     }
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.masterCompressor);
 
     osc.start();
     osc.stop(ctx.currentTime + duration);
@@ -210,6 +222,7 @@ class AudioService {
   public playWave() {
     if (!this.sfxEnabled) return;
     const ctx = this.initContext();
+    if (!this.masterCompressor) return;
     
     // Procedural "Wave Fwooosh" using white noise
     const bufferSize = ctx.sampleRate * 2;
@@ -235,13 +248,15 @@ class AudioService {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.masterCompressor);
 
     noise.start();
   }
 
   public play(soundName: 'strike' | 'streak' | 'start' | 'gameOver' | 'miss' | 'undo' | 'click' | 'confirm' | 'remove' | 'tick' | 'tock' | 'jeopardy' | 'connect' | 'launch', color?: 'red' | 'blue' | 'green') {
     if (!this.sfxEnabled) return;
+    const ctx = this.initContext();
+    if (!this.masterCompressor) return;
 
     switch (soundName) {
       case 'tick':
@@ -256,18 +271,17 @@ class AudioService {
         });
         break;
       case 'launch':
-        const launchCtx = this.initContext();
-        const launchOsc = launchCtx.createOscillator();
-        const launchGain = launchCtx.createGain();
+        const launchOsc = ctx.createOscillator();
+        const launchGain = ctx.createGain();
         launchOsc.type = 'sawtooth';
-        launchOsc.frequency.setValueAtTime(100, launchCtx.currentTime);
-        launchOsc.frequency.exponentialRampToValueAtTime(800, launchCtx.currentTime + 0.5);
-        launchGain.gain.setValueAtTime(0.1, launchCtx.currentTime);
-        launchGain.gain.exponentialRampToValueAtTime(0.001, launchCtx.currentTime + 0.5);
+        launchOsc.frequency.setValueAtTime(100, ctx.currentTime);
+        launchOsc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.5);
+        launchGain.gain.setValueAtTime(0.1, ctx.currentTime);
+        launchGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
         launchOsc.connect(launchGain);
-        launchGain.connect(launchCtx.destination);
+        launchGain.connect(this.masterCompressor);
         launchOsc.start();
-        launchOsc.stop(launchCtx.currentTime + 0.5);
+        launchOsc.stop(ctx.currentTime + 0.5);
         setTimeout(() => this.playTone(1200, 'sine', 0.2, 0.05), 400);
         break;
       case 'jeopardy':
@@ -285,7 +299,6 @@ class AudioService {
           });
         } else if (color === 'blue') {
           // BLUE: 25 Pts - "Boing" + Splash
-          const ctx = this.initContext();
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'square';
@@ -294,7 +307,7 @@ class AudioService {
           gain.gain.setValueAtTime(0.1, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(this.masterCompressor);
           osc.start();
           osc.stop(ctx.currentTime + 0.3);
           this.playTone(1200, 'sine', 0.2, 0.05);
@@ -310,18 +323,17 @@ class AudioService {
         setTimeout(() => this.playTone(110, 'sawtooth', 0.15, 0.1, false), 200);
         break;
       case 'undo':
-        const undoCtx = this.initContext();
-        const undoOsc = undoCtx.createOscillator();
-        const undoGain = undoCtx.createGain();
+        const undoOsc = ctx.createOscillator();
+        const undoGain = ctx.createGain();
         undoOsc.type = 'sine';
-        undoOsc.frequency.setValueAtTime(600, undoCtx.currentTime);
-        undoOsc.frequency.exponentialRampToValueAtTime(200, undoCtx.currentTime + 0.2);
-        undoGain.gain.setValueAtTime(0.1, undoCtx.currentTime);
-        undoGain.gain.exponentialRampToValueAtTime(0.001, undoCtx.currentTime + 0.2);
+        undoOsc.frequency.setValueAtTime(600, ctx.currentTime);
+        undoOsc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
+        undoGain.gain.setValueAtTime(0.1, ctx.currentTime);
+        undoGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
         undoOsc.connect(undoGain);
-        undoGain.connect(undoCtx.destination);
+        undoGain.connect(this.masterCompressor);
         undoOsc.start();
-        undoOsc.stop(undoCtx.currentTime + 0.2);
+        undoOsc.stop(ctx.currentTime + 0.2);
         break;
       case 'click':
         this.playTone(1200, 'sine', 0.02, 0.02);
