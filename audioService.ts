@@ -5,6 +5,10 @@ class AudioService {
   private themeGain: GainNode | null = null;
   private themeInterval: number | null = null;
   private themeStarted: boolean = false;
+  private nextNoteTime: number = 0;
+  private currentStep: number = 0;
+  private lookAhead: number = 0.1; // How far ahead to schedule (seconds)
+  private scheduleInterval: number = 25; // How often to check for new notes (ms)
 
   constructor() {
     const sfx = localStorage.getItem('sfx_enabled');
@@ -61,11 +65,14 @@ class AudioService {
     osc.type = type;
     osc.frequency.setValueAtTime(freq, ctx.currentTime);
 
+    // Use setTargetAtTime or exponentialRampToValueAtTime for smoother transitions
     gain.gain.setValueAtTime(volume, ctx.currentTime);
     if (decay) {
       gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
     } else {
-      setTimeout(() => gain.gain.setValueAtTime(0, ctx.currentTime), duration * 1000);
+      // Small fade out to prevent clicks
+      gain.gain.setValueAtTime(volume, ctx.currentTime + duration - 0.01);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
     }
 
     osc.connect(gain);
@@ -81,6 +88,9 @@ class AudioService {
     if (!this.themeGain) return;
 
     this.themeStarted = true;
+    this.currentStep = 0;
+    this.nextNoteTime = ctx.currentTime + 0.1;
+    
     this.themeGain.gain.cancelScheduledValues(ctx.currentTime);
     this.themeGain.gain.setValueAtTime(0, ctx.currentTime);
     this.themeGain.gain.linearRampToValueAtTime(1, ctx.currentTime + 1.0);
@@ -105,29 +115,29 @@ class AudioService {
       523.25, 392.00, 329.63, 261.63, 329.63, 392.00
     ];
 
-    let step = 0;
     const tempo = 180; // BPM (8th notes)
     const beatDuration = 60 / tempo;
 
-    this.themeInterval = window.setInterval(() => {
-      if (!this.musicEnabled || !this.themeGain) return;
-      
+    const scheduleNote = (step: number, time: number) => {
+      if (!this.themeGain) return;
       const freq = melody[step % melody.length];
-      const isEnd = (step % melody.length) >= melody.length - 6;
-      // Subtle crescendo: volume increases slightly towards the end of the 8-bar loop
       const crescendo = 1 + ((step % melody.length) / melody.length) * 0.5;
-      
+
       // Melody Oscillator
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(0.03 * crescendo, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 0.8);
+      osc.frequency.setValueAtTime(freq, time);
+      
+      // Smooth attack and decay to prevent crackling
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(0.03 * crescendo, time + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + beatDuration * 0.8);
+      
       osc.connect(gain);
       gain.connect(this.themeGain);
-      osc.start();
-      osc.stop(ctx.currentTime + beatDuration * 0.8);
+      osc.start(time);
+      osc.stop(time + beatDuration * 0.8);
 
       // Bass "Oom-pah-pah"
       if (step % 3 === 0) {
@@ -135,22 +145,32 @@ class AudioService {
         const bassGain = ctx.createGain();
         bassOsc.type = 'sine';
         
-        // Bass follows the chord progression
         const bar = Math.floor((step % melody.length) / 6);
         const bassFreqs = [130.81, 98.00, 110.00, 87.31, 130.81, 98.00, 87.31, 130.81];
         const bassFreq = (step % 6 === 0) ? bassFreqs[bar] : bassFreqs[bar] * 1.5;
         
-        bassOsc.frequency.setValueAtTime(bassFreq, ctx.currentTime);
-        bassGain.gain.setValueAtTime(0.05 * crescendo, ctx.currentTime);
-        bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 1.5);
+        bassOsc.frequency.setValueAtTime(bassFreq, time);
+        bassGain.gain.setValueAtTime(0, time);
+        bassGain.gain.linearRampToValueAtTime(0.05 * crescendo, time + 0.01);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, time + beatDuration * 1.5);
+        
         bassOsc.connect(bassGain);
         bassGain.connect(this.themeGain);
-        bassOsc.start();
-        bassOsc.stop(ctx.currentTime + beatDuration * 1.5);
+        bassOsc.start(time);
+        bassOsc.stop(time + beatDuration * 1.5);
       }
+    };
 
-      step++;
-    }, beatDuration * 1000);
+    this.themeInterval = window.setInterval(() => {
+      if (!this.musicEnabled) return;
+      
+      // Schedule notes that fall within the lookahead window
+      while (this.nextNoteTime < ctx.currentTime + this.lookAhead) {
+        scheduleNote(this.currentStep, this.nextNoteTime);
+        this.nextNoteTime += beatDuration;
+        this.currentStep++;
+      }
+    }, this.scheduleInterval);
   }
 
   public stopTheme(fade: boolean = true) {
