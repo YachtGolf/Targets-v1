@@ -28,6 +28,17 @@ const App: React.FC = () => {
   });
   const [shotsConfig, setShotsConfig] = useState(10);
 
+  // Handle music transitions and wave sound effect
+  React.useEffect(() => {
+    if (gameState === GameState.PLAYING) {
+      audioService.playWave();
+      audioService.stopTheme();
+    } else {
+      // Start theme for all non-game screens
+      audioService.startTheme();
+    }
+  }, [gameState]);
+
   // Global Audio Unlock for iOS/iPad
   const handleGlobalClick = () => {
     audioService.resume();
@@ -86,7 +97,7 @@ const App: React.FC = () => {
 
   return (
     <div onClick={handleGlobalClick} onTouchStart={handleGlobalClick}>
-      <Layout showWatermark={gameState !== GameState.MAIN_MENU}>
+      <Layout showAudioManager={gameState !== GameState.PLAYING}>
         {render()}
       </Layout>
     </div>

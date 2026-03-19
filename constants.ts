@@ -23,9 +23,9 @@ export const COLORS = {
 };
 
 export const TARGET_CONFIG: Record<TargetColor, { points: number; label: string }> = {
-  red: { points: 50, label: 'Small' },
-  blue: { points: 25, label: 'Medium' },
-  green: { points: 10, label: 'Large' }
+  red: { points: 50, label: 'Red' },
+  blue: { points: 25, label: 'Blue' },
+  green: { points: 10, label: 'Green' }
 };
 
 export const MAX_PLAYERS = 12;

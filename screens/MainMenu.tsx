@@ -2,7 +2,7 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player } from '../types';
-import { Users, Radio, Play, ShoppingCart, Database, Download, Volume2, VolumeX } from 'lucide-react';
+import { Users, Radio, Play, ShoppingCart, Database, Download, Volume2, VolumeX, Settings2 } from 'lucide-react';
 import { COLORS } from '../constants';
 import { audioService } from '../audioService';
 
@@ -13,13 +13,7 @@ interface MainMenuProps {
 const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
   const longPressTimer = useRef<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(audioService.isEnabled());
   const [isLaunching, setIsLaunching] = useState(false);
-
-  const toggleSound = () => {
-    audioService.toggle();
-    setSoundEnabled(audioService.isEnabled());
-  };
 
   // Secret Lead Export Function
   const handleExportLeads = () => {
@@ -73,41 +67,16 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
   const handleLaunch = () => {
     audioService.resume();
     audioService.play('launch');
-    setIsLaunching(true);
-    setTimeout(() => {
-      onNavigate(GameState.GAMES_MENU);
-    }, 600);
+    onNavigate(GameState.GAMES_MENU);
   };
 
   return (
     <motion.div 
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1, scale: isLaunching ? 1.05 : 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="relative flex flex-col items-center justify-center h-full w-full max-h-screen py-1 md:py-4 gap-4 md:gap-8"
     >
-      <AnimatePresence>
-        {isLaunching && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="fixed inset-0 bg-white z-[100] pointer-events-none"
-          />
-        )}
-      </AnimatePresence>
-      {/* Sound Toggle */}
-      <div className="absolute top-4 right-4 z-50">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={toggleSound}
-          className="w-10 h-10 bg-white/50 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 text-[#3C3C3C]/60"
-        >
-          {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-        </motion.button>
-      </div>
-
       {/* Top Branding Section */}
       <div className="flex flex-col items-center w-full">
         <div 

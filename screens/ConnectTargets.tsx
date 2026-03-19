@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Radio, Bluetooth, ShieldAlert, WifiOff } from 'lucide-react';
+import { ArrowLeft, Radio, Bluetooth, ShieldAlert, WifiOff, RotateCcw } from 'lucide-react';
 import { TargetColor } from '../types';
 import { TARGET_CONFIG, COLORS } from '../constants';
 import { bleManager } from '../bleManager';
@@ -114,6 +114,22 @@ const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTarget
       </div>
 
       <div className="mt-auto flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-4 mb-4">
+          <p className="text-[9px] font-bold text-[#3C3C3C40] uppercase tracking-widest text-center max-w-md px-6 leading-relaxed">
+            Target not showing up? Try resetting the Bluetooth engine below, or power cycle the physical target (unplug/replug).
+          </p>
+          <button 
+            onClick={() => {
+              audioService.play('click');
+              bleManager.resetAll();
+            }}
+            className="flex items-center gap-2 px-6 py-2 bg-red-50 text-red-600 rounded-full border border-red-100 hover:bg-red-100 transition-all text-[9px] font-black uppercase tracking-widest"
+          >
+            <RotateCcw size={12} />
+            Reset Bluetooth Engine
+          </button>
+        </div>
+
         {Object.values(connectedTargets).every(v => !v) && Object.values(bleStatuses).every(s => s !== 'connected') && (
           <div className="flex items-center gap-2 text-[#3C3C3C40] bg-white/20 px-6 py-3 rounded-full border border-white/20">
             <WifiOff size={16} />

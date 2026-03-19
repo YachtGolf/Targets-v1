@@ -1,15 +1,25 @@
 class AudioService {
-  private enabled: boolean = true;
+  private sfxEnabled: boolean = true;
+  private musicEnabled: boolean = true;
   private audioCtx: AudioContext | null = null;
+  private themeGain: GainNode | null = null;
+  private themeInterval: number | null = null;
+  private themeStarted: boolean = false;
 
   constructor() {
-    const saved = localStorage.getItem('sound_enabled');
-    this.enabled = saved !== null ? saved === 'true' : true;
+    const sfx = localStorage.getItem('sfx_enabled');
+    const music = localStorage.getItem('music_enabled');
+    this.sfxEnabled = sfx !== null ? sfx === 'true' : true;
+    this.musicEnabled = music !== null ? music === 'true' : true;
   }
 
   private initContext() {
     if (!this.audioCtx) {
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (!this.themeGain && this.audioCtx) {
+      this.themeGain = this.audioCtx.createGain();
+      this.themeGain.connect(this.audioCtx.destination);
     }
     return this.audioCtx;
   }
@@ -32,13 +42,16 @@ class AudioService {
     } catch (e) {
       console.warn("Audio unlock failed", e);
     }
+
+    if (this.musicEnabled && !this.themeStarted) {
+      this.startTheme();
+    }
   }
 
   private playTone(freq: number, type: OscillatorType, duration: number, volume: number = 0.1, decay: boolean = true) {
-    if (!this.enabled) return;
+    if (!this.sfxEnabled) return;
     const ctx = this.initContext();
     
-    // On iOS, we still try to resume just in case, though it usually needs a direct user gesture
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
@@ -62,24 +75,161 @@ class AudioService {
     osc.stop(ctx.currentTime + duration);
   }
 
+  public startTheme() {
+    if (!this.musicEnabled || this.themeStarted) return;
+    const ctx = this.initContext();
+    if (!this.themeGain) return;
+
+    this.themeStarted = true;
+    this.themeGain.gain.cancelScheduledValues(ctx.currentTime);
+    this.themeGain.gain.setValueAtTime(0, ctx.currentTime);
+    this.themeGain.gain.linearRampToValueAtTime(1, ctx.currentTime + 1.0);
+
+    // Extended Nautical Sea Shanty Theme (8 Bars in 6/8)
+    const melody = [
+      // Bar 1: C Major
+      261.63, 329.63, 392.00, 523.25, 392.00, 329.63,
+      // Bar 2: G Major
+      196.00, 246.94, 293.66, 392.00, 293.66, 246.94,
+      // Bar 3: A Minor
+      220.00, 261.63, 329.63, 440.00, 329.63, 261.63,
+      // Bar 4: F Major
+      174.61, 220.00, 261.63, 349.23, 261.63, 220.00,
+      // Bar 5: C Major (Variation)
+      261.63, 329.63, 392.00, 523.25, 659.25, 523.25,
+      // Bar 6: G Major (Variation)
+      392.00, 493.88, 587.33, 783.99, 587.33, 493.88,
+      // Bar 7: F Major -> G Major
+      349.23, 440.00, 523.25, 392.00, 493.88, 587.33,
+      // Bar 8: C Major (Crescendo Finish)
+      523.25, 392.00, 329.63, 261.63, 329.63, 392.00
+    ];
+
+    let step = 0;
+    const tempo = 180; // BPM (8th notes)
+    const beatDuration = 60 / tempo;
+
+    this.themeInterval = window.setInterval(() => {
+      if (!this.musicEnabled || !this.themeGain) return;
+      
+      const freq = melody[step % melody.length];
+      const isEnd = (step % melody.length) >= melody.length - 6;
+      // Subtle crescendo: volume increases slightly towards the end of the 8-bar loop
+      const crescendo = 1 + ((step % melody.length) / melody.length) * 0.5;
+      
+      // Melody Oscillator
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.03 * crescendo, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 0.8);
+      osc.connect(gain);
+      gain.connect(this.themeGain);
+      osc.start();
+      osc.stop(ctx.currentTime + beatDuration * 0.8);
+
+      // Bass "Oom-pah-pah"
+      if (step % 3 === 0) {
+        const bassOsc = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bassOsc.type = 'sine';
+        
+        // Bass follows the chord progression
+        const bar = Math.floor((step % melody.length) / 6);
+        const bassFreqs = [130.81, 98.00, 110.00, 87.31, 130.81, 98.00, 87.31, 130.81];
+        const bassFreq = (step % 6 === 0) ? bassFreqs[bar] : bassFreqs[bar] * 1.5;
+        
+        bassOsc.frequency.setValueAtTime(bassFreq, ctx.currentTime);
+        bassGain.gain.setValueAtTime(0.05 * crescendo, ctx.currentTime);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 1.5);
+        bassOsc.connect(bassGain);
+        bassGain.connect(this.themeGain);
+        bassOsc.start();
+        bassOsc.stop(ctx.currentTime + beatDuration * 1.5);
+      }
+
+      step++;
+    }, beatDuration * 1000);
+  }
+
+  public stopTheme(fade: boolean = true) {
+    if (!this.themeStarted) return;
+    
+    const ctx = this.initContext();
+    if (this.themeGain && fade) {
+      this.themeGain.gain.cancelScheduledValues(ctx.currentTime);
+      this.themeGain.gain.setValueAtTime(this.themeGain.gain.value, ctx.currentTime);
+      this.themeGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+      
+      setTimeout(() => {
+        if (this.themeInterval) {
+          clearInterval(this.themeInterval);
+          this.themeInterval = null;
+        }
+        this.themeStarted = false;
+      }, 500);
+    } else {
+      if (this.themeInterval) {
+        clearInterval(this.themeInterval);
+        this.themeInterval = null;
+      }
+      this.themeStarted = false;
+      if (this.themeGain) {
+        this.themeGain.gain.setValueAtTime(0, ctx.currentTime);
+      }
+    }
+  }
+
+  public playWave() {
+    if (!this.sfxEnabled) return;
+    const ctx = this.initContext();
+    
+    // Procedural "Wave Fwooosh" using white noise
+    const bufferSize = ctx.sampleRate * 2;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(100, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(3000, ctx.currentTime + 0.5);
+    filter.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 2.0);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.5);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 2.0);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start();
+  }
+
   public play(soundName: 'strike' | 'streak' | 'start' | 'gameOver' | 'miss' | 'undo' | 'click' | 'confirm' | 'remove' | 'tick' | 'tock' | 'jeopardy' | 'connect' | 'launch', color?: 'red' | 'blue' | 'green') {
-    if (!this.enabled) return;
+    if (!this.sfxEnabled) return;
 
     switch (soundName) {
       case 'tick':
-        this.playTone(1200, 'sine', 0.02, 0.08); // Increased from 0.02
+        this.playTone(1200, 'sine', 0.02, 0.08);
         break;
       case 'tock':
-        this.playTone(800, 'sine', 0.02, 0.08); // Increased from 0.02
+        this.playTone(800, 'sine', 0.02, 0.08);
         break;
       case 'connect':
-        // Positive rising "chirp"
         [600, 800, 1000].forEach((f, i) => {
           setTimeout(() => this.playTone(f, 'sine', 0.1, 0.05), i * 60);
         });
         break;
       case 'launch':
-        // Dramatic sweeping "Launch" sound
         const launchCtx = this.initContext();
         const launchOsc = launchCtx.createOscillator();
         const launchGain = launchCtx.createGain();
@@ -92,17 +242,15 @@ class AudioService {
         launchGain.connect(launchCtx.destination);
         launchOsc.start();
         launchOsc.stop(launchCtx.currentTime + 0.5);
-        // Add a high-pitched "ping" at the end
         setTimeout(() => this.playTone(1200, 'sine', 0.2, 0.05), 400);
         break;
       case 'jeopardy':
-        // Sharp, high-pitched double-tick
         this.playTone(1800, 'sine', 0.02, 0.04);
         setTimeout(() => this.playTone(1500, 'sine', 0.02, 0.04), 50);
         break;
       case 'strike':
         if (color === 'red') {
-          // RED: High Points - Deep Foghorn + "Jackpot"
+          // RED: 50 Pts - Deep Foghorn + "Jackpot"
           this.playTone(90, 'sawtooth', 0.8, 0.15, false);
           this.playTone(92, 'sawtooth', 0.8, 0.1, false);
           this.playTone(180, 'square', 0.4, 0.05, false);
@@ -110,7 +258,7 @@ class AudioService {
             setTimeout(() => this.playTone(f, 'triangle', 0.1, 0.05), i * 50);
           });
         } else if (color === 'blue') {
-          // BLUE: Medium Points - "Boing" + Splash
+          // BLUE: 25 Pts - "Boing" + Splash
           const ctx = this.initContext();
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -125,7 +273,7 @@ class AudioService {
           osc.stop(ctx.currentTime + 0.3);
           this.playTone(1200, 'sine', 0.2, 0.05);
         } else {
-          // GREEN: Low Points - "Clink" + Bubble
+          // GREEN: 10 Pts - "Clink" + Bubble
           this.playTone(1500, 'triangle', 0.05, 0.1);
           setTimeout(() => this.playTone(1800, 'sine', 0.05, 0.08), 40);
           this.playTone(400, 'sine', 0.05, 0.1);
@@ -136,7 +284,6 @@ class AudioService {
         setTimeout(() => this.playTone(110, 'sawtooth', 0.15, 0.1, false), 200);
         break;
       case 'undo':
-        // Gentle "Whoosh" / Rewind
         const undoCtx = this.initContext();
         const undoOsc = undoCtx.createOscillator();
         const undoGain = undoCtx.createGain();
@@ -151,16 +298,13 @@ class AudioService {
         undoOsc.stop(undoCtx.currentTime + 0.2);
         break;
       case 'click':
-        // Subtle "Tick"
         this.playTone(1200, 'sine', 0.02, 0.02);
         break;
       case 'confirm':
-        // Pleasant "Ding"
         this.playTone(880, 'sine', 0.1, 0.1);
         setTimeout(() => this.playTone(1109, 'sine', 0.1, 0.1), 50);
         break;
       case 'remove':
-        // Gentle "Thud"
         this.playTone(150, 'sine', 0.1, 0.1);
         break;
       case 'streak':
@@ -182,17 +326,27 @@ class AudioService {
     }
   }
 
-  public isEnabled(): boolean {
-    return this.enabled;
+  public isSfxEnabled(): boolean {
+    return this.sfxEnabled;
   }
 
-  public setEnabled(enabled: boolean) {
-    this.enabled = enabled;
-    localStorage.setItem('sound_enabled', String(enabled));
+  public isMusicEnabled(): boolean {
+    return this.musicEnabled;
   }
 
-  public toggle() {
-    this.setEnabled(!this.enabled);
+  public setSfxEnabled(enabled: boolean) {
+    this.sfxEnabled = enabled;
+    localStorage.setItem('sfx_enabled', String(enabled));
+  }
+
+  public setMusicEnabled(enabled: boolean) {
+    this.musicEnabled = enabled;
+    localStorage.setItem('music_enabled', String(enabled));
+    if (enabled) {
+      this.startTheme();
+    } else {
+      this.stopTheme();
+    }
   }
 }
 
