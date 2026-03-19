@@ -85,7 +85,7 @@ class AudioService {
     
     this.themeGain.gain.cancelScheduledValues(ctx.currentTime);
     this.themeGain.gain.setValueAtTime(0, ctx.currentTime);
-    this.themeGain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + 1.0);
+    this.themeGain.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 1.0); // Slightly more headroom
 
     // Extended Nautical Sea Shanty Theme (8 Bars in 6/8)
     const melody = [
@@ -107,13 +107,14 @@ class AudioService {
       523.25, 392.00, 329.63, 261.63, 329.63, 392.00
     ];
 
-    const tempo = 180; // Back to original bouncy tempo
+    const tempo = 180; 
     const beatDuration = 60 / tempo;
     let step = 0;
 
     this.themeInterval = window.setInterval(() => {
       if (!this.musicEnabled || !this.themeGain) return;
 
+      const now = ctx.currentTime;
       const freq = melody[step % melody.length];
       const crescendo = 1 + ((step % melody.length) / melody.length) * 0.5;
 
@@ -121,16 +122,17 @@ class AudioService {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      osc.frequency.setValueAtTime(freq, now);
       
-      gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.02 * crescendo, ctx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 0.8);
+      // Proper click-free ramps
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.02 * crescendo, now + 0.01);
+      gain.gain.setTargetAtTime(0, now + 0.01, beatDuration * 0.3);
       
       osc.connect(gain);
       gain.connect(this.themeGain);
-      osc.start();
-      osc.stop(ctx.currentTime + beatDuration * 0.8);
+      osc.start(now);
+      osc.stop(now + beatDuration); // Stop safely after decay
 
       // Bass "Oom-pah-pah"
       if (step % 3 === 0) {
@@ -142,15 +144,15 @@ class AudioService {
         const bassFreqs = [130.81, 98.00, 110.00, 87.31, 130.81, 98.00, 87.31, 130.81];
         const bassFreq = (step % 6 === 0) ? bassFreqs[bar] : bassFreqs[bar] * 1.5;
         
-        bassOsc.frequency.setValueAtTime(bassFreq, ctx.currentTime);
-        bassGain.gain.setValueAtTime(0, ctx.currentTime);
-        bassGain.gain.linearRampToValueAtTime(0.04 * crescendo, ctx.currentTime + 0.01);
-        bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 1.5);
+        bassOsc.frequency.setValueAtTime(bassFreq, now);
+        bassGain.gain.setValueAtTime(0, now);
+        bassGain.gain.linearRampToValueAtTime(0.04 * crescendo, now + 0.01);
+        bassGain.gain.setTargetAtTime(0, now + 0.01, beatDuration * 0.5);
         
         bassOsc.connect(bassGain);
         bassGain.connect(this.themeGain);
-        bassOsc.start();
-        bassOsc.stop(ctx.currentTime + beatDuration * 1.5);
+        bassOsc.start(now);
+        bassOsc.stop(now + beatDuration * 1.5);
       }
 
       step++;
