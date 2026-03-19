@@ -87,27 +87,27 @@ class AudioService {
     this.themeGain.gain.setValueAtTime(0, ctx.currentTime);
     this.themeGain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + 1.0);
 
-    // Simplified Nautical Sea Shanty Theme (3 notes per bar instead of 6)
+    // Extended Nautical Sea Shanty Theme (8 Bars in 6/8)
     const melody = [
       // Bar 1: C Major
-      261.63, 392.00, 523.25,
+      261.63, 329.63, 392.00, 523.25, 392.00, 329.63,
       // Bar 2: G Major
-      196.00, 293.66, 392.00,
+      196.00, 246.94, 293.66, 392.00, 293.66, 246.94,
       // Bar 3: A Minor
-      220.00, 329.63, 440.00,
+      220.00, 261.63, 329.63, 440.00, 329.63, 261.63,
       // Bar 4: F Major
-      174.61, 261.63, 349.23,
+      174.61, 220.00, 261.63, 349.23, 261.63, 220.00,
       // Bar 5: C Major (Variation)
-      261.63, 392.00, 659.25,
+      261.63, 329.63, 392.00, 523.25, 659.25, 523.25,
       // Bar 6: G Major (Variation)
-      392.00, 587.33, 783.99,
+      392.00, 493.88, 587.33, 783.99, 587.33, 493.88,
       // Bar 7: F Major -> G Major
-      349.23, 523.25, 587.33,
+      349.23, 440.00, 523.25, 392.00, 493.88, 587.33,
       // Bar 8: C Major (Crescendo Finish)
-      523.25, 329.63, 392.00
+      523.25, 392.00, 329.63, 261.63, 329.63, 392.00
     ];
 
-    const tempo = 90; // Half the tempo (quarter notes/dotted quarter feel)
+    const tempo = 180; // Back to original bouncy tempo
     const beatDuration = 60 / tempo;
     let step = 0;
 
@@ -123,34 +123,35 @@ class AudioService {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, ctx.currentTime);
       
-      // Linear ramps are cheaper for iPad to calculate
       gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.02 * crescendo, ctx.currentTime + 0.02);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + beatDuration * 0.8);
+      gain.gain.linearRampToValueAtTime(0.02 * crescendo, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 0.8);
       
       osc.connect(gain);
       gain.connect(this.themeGain);
       osc.start();
       osc.stop(ctx.currentTime + beatDuration * 0.8);
 
-      // Simple Bass (every beat)
-      const bassOsc = ctx.createOscillator();
-      const bassGain = ctx.createGain();
-      bassOsc.type = 'sine';
-      
-      const bar = Math.floor((step % melody.length) / 3);
-      const bassFreqs = [130.81, 98.00, 110.00, 87.31, 130.81, 98.00, 87.31, 130.81];
-      const bassFreq = (step % 3 === 0) ? bassFreqs[bar] : bassFreqs[bar] * 1.5;
-      
-      bassOsc.frequency.setValueAtTime(bassFreq, ctx.currentTime);
-      bassGain.gain.setValueAtTime(0, ctx.currentTime);
-      bassGain.gain.linearRampToValueAtTime(0.04 * crescendo, ctx.currentTime + 0.02);
-      bassGain.gain.linearRampToValueAtTime(0, ctx.currentTime + beatDuration * 0.9);
-      
-      bassOsc.connect(bassGain);
-      bassGain.connect(this.themeGain);
-      bassOsc.start();
-      bassOsc.stop(ctx.currentTime + beatDuration * 0.9);
+      // Bass "Oom-pah-pah"
+      if (step % 3 === 0) {
+        const bassOsc = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bassOsc.type = 'sine';
+        
+        const bar = Math.floor((step % melody.length) / 6);
+        const bassFreqs = [130.81, 98.00, 110.00, 87.31, 130.81, 98.00, 87.31, 130.81];
+        const bassFreq = (step % 6 === 0) ? bassFreqs[bar] : bassFreqs[bar] * 1.5;
+        
+        bassOsc.frequency.setValueAtTime(bassFreq, ctx.currentTime);
+        bassGain.gain.setValueAtTime(0, ctx.currentTime);
+        bassGain.gain.linearRampToValueAtTime(0.04 * crescendo, ctx.currentTime + 0.01);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 1.5);
+        
+        bassOsc.connect(bassGain);
+        bassGain.connect(this.themeGain);
+        bassOsc.start();
+        bassOsc.stop(ctx.currentTime + beatDuration * 1.5);
+      }
 
       step++;
     }, beatDuration * 1000);
