@@ -2,10 +2,8 @@ class AudioService {
   private sfxEnabled: boolean = true;
   private musicEnabled: boolean = true;
   private audioCtx: AudioContext | null = null;
-  private masterCompressor: DynamicsCompressorNode | null = null;
   private themeGain: GainNode | null = null;
-  private themeBuffer: AudioBuffer | null = null;
-  private themeSource: AudioBufferSourceNode | null = null;
+  private themeInterval: number | null = null;
   private themeStarted: boolean = false;
 
   constructor() {
@@ -18,97 +16,15 @@ class AudioService {
   private initContext() {
     if (!this.audioCtx) {
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Create a master compressor to prevent digital clipping/crackling
-      this.masterCompressor = this.audioCtx.createDynamicsCompressor();
-      this.masterCompressor.threshold.setValueAtTime(-20, this.audioCtx.currentTime);
-      this.masterCompressor.knee.setValueAtTime(30, this.audioCtx.currentTime);
-      this.masterCompressor.ratio.setValueAtTime(12, this.audioCtx.currentTime);
-      this.masterCompressor.attack.setValueAtTime(0.003, this.audioCtx.currentTime);
-      this.masterCompressor.release.setValueAtTime(0.25, this.audioCtx.currentTime);
-      this.masterCompressor.connect(this.audioCtx.destination);
     }
-    
-    if (!this.themeGain && this.audioCtx && this.masterCompressor) {
+    if (!this.themeGain && this.audioCtx) {
       this.themeGain = this.audioCtx.createGain();
-      this.themeGain.connect(this.masterCompressor);
+      this.themeGain.connect(this.audioCtx.destination);
     }
     return this.audioCtx;
   }
 
-  private async createThemeBuffer() {
-    const ctx = this.initContext();
-    if (this.themeBuffer) return this.themeBuffer;
-
-    const tempo = 180; // BPM (8th notes)
-    const beatDuration = 60 / tempo;
-    const totalBeats = 48; // 8 bars * 6 beats
-    const totalDuration = totalBeats * beatDuration;
-    
-    // Create an OfflineAudioContext to "pre-render" the music
-    const offlineCtx = new OfflineAudioContext(1, ctx.sampleRate * totalDuration, ctx.sampleRate);
-
-    const melody = [
-      // Bar 1: C Major
-      261.63, 329.63, 392.00, 523.25, 392.00, 329.63,
-      // Bar 2: G Major
-      196.00, 246.94, 293.66, 392.00, 293.66, 246.94,
-      // Bar 3: A Minor
-      220.00, 261.63, 329.63, 440.00, 329.63, 261.63,
-      // Bar 4: F Major
-      174.61, 220.00, 261.63, 349.23, 261.63, 220.00,
-      // Bar 5: C Major (Variation)
-      261.63, 329.63, 392.00, 523.25, 659.25, 523.25,
-      // Bar 6: G Major (Variation)
-      392.00, 493.88, 587.33, 783.99, 587.33, 493.88,
-      // Bar 7: F Major -> G Major
-      349.23, 440.00, 523.25, 392.00, 493.88, 587.33,
-      // Bar 8: C Major (Crescendo Finish)
-      523.25, 392.00, 329.63, 261.63, 329.63, 392.00
-    ];
-
-    for (let i = 0; i < melody.length; i++) {
-      const time = i * beatDuration;
-      const freq = melody[i];
-      const crescendo = 1 + (i / melody.length) * 0.5;
-
-      // Melody - Using SINE waves for maximum smoothness on iPad
-      const osc = offlineCtx.createOscillator();
-      const gain = offlineCtx.createGain();
-      osc.type = 'sine'; 
-      osc.frequency.setValueAtTime(freq, time);
-      gain.gain.setValueAtTime(0, time);
-      gain.gain.linearRampToValueAtTime(0.04 * crescendo, time + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + beatDuration * 0.8);
-      osc.connect(gain);
-      gain.connect(offlineCtx.destination);
-      osc.start(time);
-      osc.stop(time + beatDuration * 0.8);
-
-      // Bass
-      if (i % 3 === 0) {
-        const bassOsc = offlineCtx.createOscillator();
-        const bassGain = offlineCtx.createGain();
-        bassOsc.type = 'sine';
-        const bar = Math.floor(i / 6);
-        const bassFreqs = [130.81, 98.00, 110.00, 87.31, 130.81, 98.00, 87.31, 130.81];
-        const bassFreq = (i % 6 === 0) ? bassFreqs[bar] : bassFreqs[bar] * 1.5;
-        bassOsc.frequency.setValueAtTime(bassFreq, time);
-        bassGain.gain.setValueAtTime(0, time);
-        bassGain.gain.linearRampToValueAtTime(0.06 * crescendo, time + 0.01);
-        bassGain.gain.exponentialRampToValueAtTime(0.001, time + beatDuration * 1.5);
-        bassOsc.connect(bassGain);
-        bassGain.connect(offlineCtx.destination);
-        bassOsc.start(time);
-        bassOsc.stop(time + beatDuration * 1.5);
-      }
-    }
-
-    this.themeBuffer = await offlineCtx.startRendering();
-    return this.themeBuffer;
-  }
-
-  public async resume() {
+  public resume() {
     const ctx = this.initContext();
     if (ctx.state === 'suspended') {
       ctx.resume();
@@ -128,14 +44,13 @@ class AudioService {
     }
 
     if (this.musicEnabled && !this.themeStarted) {
-      await this.startTheme();
+      this.startTheme();
     }
   }
 
   private playTone(freq: number, type: OscillatorType, duration: number, volume: number = 0.1, decay: boolean = true) {
     if (!this.sfxEnabled) return;
     const ctx = this.initContext();
-    if (!this.masterCompressor) return;
     
     if (ctx.state === 'suspended') {
       ctx.resume();
@@ -155,38 +70,91 @@ class AudioService {
     }
 
     osc.connect(gain);
-    gain.connect(this.masterCompressor);
+    gain.connect(ctx.destination);
 
     osc.start();
     osc.stop(ctx.currentTime + duration);
   }
 
-  public async startTheme() {
+  public startTheme() {
     if (!this.musicEnabled || this.themeStarted) return;
     const ctx = this.initContext();
     if (!this.themeGain) return;
 
     this.themeStarted = true;
     
-    // Ensure buffer is ready
-    const buffer = await this.createThemeBuffer();
-    
     this.themeGain.gain.cancelScheduledValues(ctx.currentTime);
     this.themeGain.gain.setValueAtTime(0, ctx.currentTime);
-    this.themeGain.gain.linearRampToValueAtTime(1, ctx.currentTime + 1.0);
+    this.themeGain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + 1.0); // Slightly lower master volume
 
-    // Stop any existing source
-    if (this.themeSource) {
-      try { this.themeSource.stop(); } catch(e) {}
-      this.themeSource.disconnect();
-    }
+    // Extended Nautical Sea Shanty Theme (8 Bars in 6/8)
+    const melody = [
+      // Bar 1: C Major
+      261.63, 329.63, 392.00, 523.25, 392.00, 329.63,
+      // Bar 2: G Major
+      196.00, 246.94, 293.66, 392.00, 293.66, 246.94,
+      // Bar 3: A Minor
+      220.00, 261.63, 329.63, 440.00, 329.63, 261.63,
+      // Bar 4: F Major
+      174.61, 220.00, 261.63, 349.23, 261.63, 220.00,
+      // Bar 5: C Major (Variation)
+      261.63, 329.63, 392.00, 523.25, 659.25, 523.25,
+      // Bar 6: G Major (Variation)
+      392.00, 493.88, 587.33, 783.99, 587.33, 493.88,
+      // Bar 7: F Major -> G Major
+      349.23, 440.00, 523.25, 392.00, 493.88, 587.33,
+      // Bar 8: C Major (Crescendo Finish)
+      523.25, 392.00, 329.63, 261.63, 329.63, 392.00
+    ];
 
-    // Create a single looping source node
-    this.themeSource = ctx.createBufferSource();
-    this.themeSource.buffer = buffer;
-    this.themeSource.loop = true;
-    this.themeSource.connect(this.themeGain);
-    this.themeSource.start(0);
+    const tempo = 180; // BPM (8th notes)
+    const beatDuration = 60 / tempo;
+    let step = 0;
+
+    this.themeInterval = window.setInterval(() => {
+      if (!this.musicEnabled || !this.themeGain) return;
+
+      const freq = melody[step % melody.length];
+      const crescendo = 1 + ((step % melody.length) / melody.length) * 0.5;
+
+      // Melody Oscillator
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.02 * crescendo, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 0.8);
+      
+      osc.connect(gain);
+      gain.connect(this.themeGain);
+      osc.start();
+      osc.stop(ctx.currentTime + beatDuration * 0.8);
+
+      // Bass "Oom-pah-pah"
+      if (step % 3 === 0) {
+        const bassOsc = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bassOsc.type = 'sine';
+        
+        const bar = Math.floor((step % melody.length) / 6);
+        const bassFreqs = [130.81, 98.00, 110.00, 87.31, 130.81, 98.00, 87.31, 130.81];
+        const bassFreq = (step % 6 === 0) ? bassFreqs[bar] : bassFreqs[bar] * 1.5;
+        
+        bassOsc.frequency.setValueAtTime(bassFreq, ctx.currentTime);
+        bassGain.gain.setValueAtTime(0, ctx.currentTime);
+        bassGain.gain.linearRampToValueAtTime(0.04 * crescendo, ctx.currentTime + 0.01);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beatDuration * 1.5);
+        
+        bassOsc.connect(bassGain);
+        bassGain.connect(this.themeGain);
+        bassOsc.start();
+        bassOsc.stop(ctx.currentTime + beatDuration * 1.5);
+      }
+
+      step++;
+    }, beatDuration * 1000);
   }
 
   public stopTheme(fade: boolean = true) {
@@ -199,18 +167,16 @@ class AudioService {
       this.themeGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
       
       setTimeout(() => {
-        if (this.themeSource) {
-          try { this.themeSource.stop(); } catch(e) {}
-          this.themeSource.disconnect();
-          this.themeSource = null;
+        if (this.themeInterval) {
+          clearInterval(this.themeInterval);
+          this.themeInterval = null;
         }
         this.themeStarted = false;
       }, 500);
     } else {
-      if (this.themeSource) {
-        try { this.themeSource.stop(); } catch(e) {}
-        this.themeSource.disconnect();
-        this.themeSource = null;
+      if (this.themeInterval) {
+        clearInterval(this.themeInterval);
+        this.themeInterval = null;
       }
       this.themeStarted = false;
       if (this.themeGain) {
@@ -222,7 +188,6 @@ class AudioService {
   public playWave() {
     if (!this.sfxEnabled) return;
     const ctx = this.initContext();
-    if (!this.masterCompressor) return;
     
     // Procedural "Wave Fwooosh" using white noise
     const bufferSize = ctx.sampleRate * 2;
@@ -248,7 +213,7 @@ class AudioService {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(this.masterCompressor);
+    gain.connect(ctx.destination);
 
     noise.start();
   }
@@ -256,7 +221,6 @@ class AudioService {
   public play(soundName: 'strike' | 'streak' | 'start' | 'gameOver' | 'miss' | 'undo' | 'click' | 'confirm' | 'remove' | 'tick' | 'tock' | 'jeopardy' | 'connect' | 'launch', color?: 'red' | 'blue' | 'green') {
     if (!this.sfxEnabled) return;
     const ctx = this.initContext();
-    if (!this.masterCompressor) return;
 
     switch (soundName) {
       case 'tick':
@@ -279,7 +243,7 @@ class AudioService {
         launchGain.gain.setValueAtTime(0.1, ctx.currentTime);
         launchGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
         launchOsc.connect(launchGain);
-        launchGain.connect(this.masterCompressor);
+        launchGain.connect(ctx.destination);
         launchOsc.start();
         launchOsc.stop(ctx.currentTime + 0.5);
         setTimeout(() => this.playTone(1200, 'sine', 0.2, 0.05), 400);
@@ -307,7 +271,7 @@ class AudioService {
           gain.gain.setValueAtTime(0.1, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
           osc.connect(gain);
-          gain.connect(this.masterCompressor);
+          gain.connect(ctx.destination);
           osc.start();
           osc.stop(ctx.currentTime + 0.3);
           this.playTone(1200, 'sine', 0.2, 0.05);
@@ -331,7 +295,7 @@ class AudioService {
         undoGain.gain.setValueAtTime(0.1, ctx.currentTime);
         undoGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
         undoOsc.connect(undoGain);
-        undoGain.connect(this.masterCompressor);
+        undoGain.connect(ctx.destination);
         undoOsc.start();
         undoOsc.stop(ctx.currentTime + 0.2);
         break;
