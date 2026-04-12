@@ -71,6 +71,16 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
       icon: <Ship className="text-[#00A49E]" size={24} />,
       min: 2,
       max: 12
+    },
+    {
+      id: GameType.REFLEX_RACER,
+      title: 'Reflex Racer',
+      desc: 'Rapid target acquisition. Speed is everything.',
+      instructions: 'Rapid target acquisition! The game will randomly select a target for you to hit. You have 60 seconds to hit it. The faster you hit it, the more points you get (starting at 1000). After a hit, there is a 5-second countdown to the next target.',
+      icon: <Zap className="text-orange-500" size={24} />,
+      min: 1,
+      max: 12,
+      hasConfig: true
     }
   ];
 
@@ -227,8 +237,8 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
               <h2 className="brand-headline text-4xl text-[#3C3C3C] mb-2">Round Config</h2>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#3C3C3C40] mb-10 text-center">Select your total shot volume</p>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mb-10">
-                {[1, 3, 5, 10].map(s => (
+              <div className="grid grid-cols-3 gap-4 w-full mb-10">
+                {[3, 5, 10].map(s => (
                   <button
                     key={s}
                     onClick={() => {
