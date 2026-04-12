@@ -1,5 +1,4 @@
 
-// Version: 1.0.1 - Fixed build resolution
 import React, { useState } from 'react';
 import Layout from './components/Layout';
 import MainMenu from './screens/MainMenu';
@@ -15,7 +14,7 @@ import FirstTo100 from './screens/games/FirstTo100';
 import CaribbeanCrush from './screens/games/CaribbeanCrush';
 import ArcticBlast from './screens/games/ArcticBlast';
 import AzaleaAttack from './screens/games/AzaleaAttack';
-import ReflexRacer from './screens/games/ReflexRacerGame';
+import ReflexRacer from './screens/games/ReflexRacer';
 import Podium from './screens/Podium';
 import { GameState, Player, GameType, TargetColor } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
