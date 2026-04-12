@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameType } from '../types';
 import { ArrowLeft, Target, Timer, Ship, AlertCircle, CheckCircle, Flag, Waves, Zap, Snowflake, Trophy, Info, X } from 'lucide-react';
+import { audioService } from '../audioService';
 
 interface GamesMenuProps {
   onBack: () => void;
@@ -70,6 +71,16 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
       icon: <Ship className="text-[#00A49E]" size={24} />,
       min: 2,
       max: 12
+    },
+    {
+      id: GameType.REFLEX_RACER,
+      title: 'Reflex Racer',
+      desc: 'Rapid target acquisition. Speed is everything.',
+      instructions: 'Rapid target acquisition! The game will randomly select a target for you to hit. You have 60 seconds to hit it. The faster you hit it, the more points you get (starting at 1000). After a hit, there is a 5-second countdown to the next target.',
+      icon: <Zap className="text-orange-500" size={24} />,
+      min: 1,
+      max: 12,
+      hasConfig: true
     }
   ];
 
@@ -106,16 +117,16 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
 
     return (
       <motion.div
-        whileHover={disabled ? {} : { scale: 1.02, y: -4 }}
         onClick={() => {
           if (disabled) return;
+          audioService.play('click');
           if (g.hasConfig) {
             setSelectingShotsFor(g.id);
           } else {
             onSelectGame(g.id);
           }
         }}
-        className={`p-6 rounded-3xl flex flex-col text-left transition-all h-full relative ${disabled ? 'bg-white/20 grayscale opacity-40 cursor-not-allowed' : 'bg-white border border-transparent hover:border-[#00A49E]/30 shadow-sm hover:shadow-xl cursor-pointer'}`}
+        className={`p-6 rounded-3xl flex flex-col text-left transition-all h-full relative ${disabled ? 'bg-white/20 grayscale opacity-40 cursor-not-allowed' : 'bg-white border border-transparent hover:border-[#00A49E]/30 cursor-pointer'}`}
       >
         <div className="flex justify-between items-start mb-4">
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${g.tournament ? 'bg-emerald-50' : 'bg-[#DEE1DA]'}`}>
@@ -124,6 +135,7 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
           <button 
             onClick={(e) => {
               e.stopPropagation();
+              audioService.play('click');
               setShowingInstructionsFor(g);
             }}
             className="p-2 hover:bg-[#3C3C3C]/5 rounded-full transition-colors"
@@ -155,7 +167,13 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full h-full flex flex-col py-6">
       <div className="flex items-center gap-4 mb-8">
-        <button onClick={onBack} className="p-4 bg-white/60 rounded-full text-[#3C3C3C]">
+        <button 
+          onClick={() => {
+            audioService.play('click');
+            onBack();
+          }} 
+          className="p-4 bg-white/60 rounded-full text-[#3C3C3C]"
+        >
           <ArrowLeft size={20} />
         </button>
         <h1 className="brand-headline text-4xl text-[#3C3C3C]">Play</h1>
@@ -202,12 +220,15 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-[#3C3C3C]/95"
-            onClick={() => setSelectingShotsFor(null)}
+            onClick={() => {
+              audioService.play('click');
+              setSelectingShotsFor(null);
+            }}
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-white rounded-[3rem] p-12 max-w-md w-full flex flex-col items-center shadow-2xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-white rounded-[3rem] p-12 max-w-md w-full flex flex-col items-center"
               onClick={e => e.stopPropagation()}
             >
               <div className="w-20 h-20 rounded-full bg-[#00A49E]/10 flex items-center justify-center mb-6">
@@ -216,11 +237,12 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
               <h2 className="brand-headline text-4xl text-[#3C3C3C] mb-2">Round Config</h2>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#3C3C3C40] mb-10 text-center">Select your total shot volume</p>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mb-10">
-                {[1, 3, 5, 10].map(s => (
+              <div className="grid grid-cols-3 gap-4 w-full mb-10">
+                {[3, 5, 10].map(s => (
                   <button
                     key={s}
                     onClick={() => {
+                      audioService.play('confirm');
                       onSelectGame(selectingShotsFor, { shots: s });
                       setSelectingShotsFor(null);
                     }}
@@ -233,7 +255,10 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
               </div>
               
               <button 
-                onClick={() => setSelectingShotsFor(null)}
+                onClick={() => {
+                  audioService.play('click');
+                  setSelectingShotsFor(null);
+                }}
                 className="text-[10px] font-black uppercase tracking-widest text-[#3C3C3C30] hover:text-[#3C3C3C] transition-colors"
               >
                 Cancel
@@ -248,16 +273,22 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[300] flex items-center justify-center p-8 bg-[#3C3C3C]/95"
-            onClick={() => setShowingInstructionsFor(null)}
+            onClick={() => {
+              audioService.play('click');
+              setShowingInstructionsFor(null);
+            }}
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-white rounded-[3rem] p-10 max-w-md w-full flex flex-col shadow-2xl relative"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-white rounded-[3rem] p-10 max-w-md w-full flex flex-col relative"
               onClick={e => e.stopPropagation()}
             >
               <button 
-                onClick={() => setShowingInstructionsFor(null)}
+                onClick={() => {
+                  audioService.play('click');
+                  setShowingInstructionsFor(null);
+                }}
                 className="absolute top-8 right-8 p-2 hover:bg-[#3C3C3C]/5 rounded-full transition-colors"
               >
                 <X size={20} className="text-[#3C3C3C]/30" />
@@ -292,6 +323,7 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
               <button 
                 onClick={() => {
                   const g = showingInstructionsFor;
+                  audioService.play('confirm');
                   setShowingInstructionsFor(null);
                   const tooFew = !g.tournament && playersCount < g.min;
                   const tooMany = playersCount > g.max;
@@ -307,7 +339,7 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
                 className={`mt-10 py-5 rounded-2xl font-black uppercase tracking-[0.2em] transition-all ${
                   ((!showingInstructionsFor.tournament && playersCount < showingInstructionsFor.min) || playersCount > showingInstructionsFor.max)
                   ? 'bg-[#3C3C3C]/10 text-[#3C3C3C]/20 cursor-not-allowed'
-                  : 'bg-[#3C3C3C] text-white hover:bg-[#00A49E] shadow-lg active:scale-95'
+                  : 'bg-[#3C3C3C] text-white hover:bg-[#00A49E] active:scale-95'
                 }`}
               >
                 Start Game
