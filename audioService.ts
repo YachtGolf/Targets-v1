@@ -235,101 +235,105 @@ class AudioService {
 
   public play(soundName: 'strike' | 'streak' | 'start' | 'gameOver' | 'miss' | 'undo' | 'click' | 'confirm' | 'remove' | 'tick' | 'tock' | 'jeopardy' | 'connect' | 'launch', color?: 'red' | 'blue' | 'green') {
     if (!this.sfxEnabled) return;
-    const ctx = this.initContext();
-    if (!this.masterBus) return;
+    try {
+      const ctx = this.initContext();
+      if (!this.masterBus) return;
 
-    switch (soundName) {
-      case 'tick': this.playTone(1200, 'sine', 0.02, 0.08); break;
-      case 'tock': this.playTone(800, 'sine', 0.02, 0.08); break;
-      case 'connect':
-        [600, 800, 1000].forEach((f, i) => {
-          setTimeout(() => this.playTone(f, 'sine', 0.1, 0.05), i * 60);
-        });
-        break;
-      case 'launch':
-        const launchOsc = ctx.createOscillator();
-        const launchGain = ctx.createGain();
-        launchOsc.type = 'sawtooth';
-        launchOsc.frequency.setValueAtTime(100, ctx.currentTime);
-        launchOsc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.5);
-        launchGain.gain.setValueAtTime(0.1, ctx.currentTime);
-        launchGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        launchOsc.connect(launchGain);
-        launchGain.connect(this.masterBus);
-        launchOsc.start();
-        launchOsc.stop(ctx.currentTime + 0.5);
-        setTimeout(() => this.playTone(1200, 'sine', 0.2, 0.05), 400);
-        break;
-      case 'jeopardy':
-        this.playTone(1800, 'sine', 0.02, 0.04);
-        setTimeout(() => this.playTone(1500, 'sine', 0.02, 0.04), 50);
-        break;
-      case 'strike':
-        if (color === 'red') {
-          this.playTone(90, 'sawtooth', 0.8, 0.15, false);
-          this.playTone(92, 'sawtooth', 0.8, 0.1, false);
-          this.playTone(180, 'square', 0.4, 0.05, false);
-          [880, 1109, 1318, 1760].forEach((f, i) => {
-            setTimeout(() => this.playTone(f, 'triangle', 0.1, 0.05), i * 50);
+      switch (soundName) {
+        case 'tick': this.playTone(1200, 'sine', 0.02, 0.08); break;
+        case 'tock': this.playTone(800, 'sine', 0.02, 0.08); break;
+        case 'connect':
+          [600, 800, 1000].forEach((f, i) => {
+            setTimeout(() => this.playTone(f, 'sine', 0.1, 0.05), i * 60);
           });
-        } else if (color === 'blue') {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(200, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.3);
-          gain.gain.setValueAtTime(0.1, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-          osc.connect(gain);
-          gain.connect(this.masterBus);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.3);
-          this.playTone(1200, 'sine', 0.2, 0.05);
-        } else {
-          this.playTone(1500, 'triangle', 0.05, 0.1);
-          setTimeout(() => this.playTone(1800, 'sine', 0.05, 0.08), 40);
-          this.playTone(400, 'sine', 0.05, 0.1);
-        }
-        break;
-      case 'miss':
-        this.playTone(110, 'sawtooth', 0.15, 0.1, false);
-        setTimeout(() => this.playTone(110, 'sawtooth', 0.15, 0.1, false), 200);
-        break;
-      case 'undo':
-        const undoOsc = ctx.createOscillator();
-        const undoGain = ctx.createGain();
-        undoOsc.type = 'sine';
-        undoOsc.frequency.setValueAtTime(600, ctx.currentTime);
-        undoOsc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
-        undoGain.gain.setValueAtTime(0.1, ctx.currentTime);
-        undoGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-        undoOsc.connect(undoGain);
-        undoGain.connect(this.masterBus);
-        undoOsc.start();
-        undoOsc.stop(ctx.currentTime + 0.2);
-        break;
-      case 'click': this.playTone(1200, 'sine', 0.02, 0.02); break;
-      case 'confirm':
-        this.playTone(880, 'sine', 0.1, 0.1);
-        setTimeout(() => this.playTone(1109, 'sine', 0.1, 0.1), 50);
-        break;
-      case 'remove': this.playTone(150, 'sine', 0.1, 0.1); break;
-      case 'streak':
-        [330, 392, 440, 523, 659].forEach((f, i) => {
-          setTimeout(() => this.playTone(f, 'square', 0.2, 0.08), i * 120);
-        });
-        break;
-      case 'start':
-        [523, 659, 783, 1046].forEach((f, i) => {
-          setTimeout(() => this.playTone(f, 'square', 0.2, 0.05), i * 100);
-        });
-        break;
-      case 'gameOver':
-        this.playTone(100, 'sawtooth', 1.0, 0.1, true);
-        [783, 659, 523, 392].forEach((f, i) => {
-          setTimeout(() => this.playTone(f, 'sawtooth', 0.4, 0.05), 500 + (i * 200));
-        });
-        break;
+          break;
+        case 'launch':
+          const launchOsc = ctx.createOscillator();
+          const launchGain = ctx.createGain();
+          launchOsc.type = 'sawtooth';
+          launchOsc.frequency.setValueAtTime(100, ctx.currentTime);
+          launchOsc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.5);
+          launchGain.gain.setValueAtTime(0.1, ctx.currentTime);
+          launchGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+          launchOsc.connect(launchGain);
+          launchGain.connect(this.masterBus);
+          launchOsc.start();
+          launchOsc.stop(ctx.currentTime + 0.5);
+          setTimeout(() => this.playTone(1200, 'sine', 0.2, 0.05), 400);
+          break;
+        case 'jeopardy':
+          this.playTone(1800, 'sine', 0.02, 0.04);
+          setTimeout(() => this.playTone(1500, 'sine', 0.02, 0.04), 50);
+          break;
+        case 'strike':
+          if (color === 'red') {
+            this.playTone(90, 'sawtooth', 0.8, 0.15, false);
+            this.playTone(92, 'sawtooth', 0.8, 0.1, false);
+            this.playTone(180, 'square', 0.4, 0.05, false);
+            [880, 1109, 1318, 1760].forEach((f, i) => {
+              setTimeout(() => this.playTone(f, 'triangle', 0.1, 0.05), i * 50);
+            });
+          } else if (color === 'blue') {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(200, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(this.masterBus);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+            this.playTone(1200, 'sine', 0.2, 0.05);
+          } else {
+            this.playTone(1500, 'triangle', 0.05, 0.1);
+            setTimeout(() => this.playTone(1800, 'sine', 0.05, 0.08), 40);
+            this.playTone(400, 'sine', 0.05, 0.1);
+          }
+          break;
+        case 'miss':
+          this.playTone(110, 'sawtooth', 0.15, 0.1, false);
+          setTimeout(() => this.playTone(110, 'sawtooth', 0.15, 0.1, false), 200);
+          break;
+        case 'undo':
+          const undoOsc = ctx.createOscillator();
+          const undoGain = ctx.createGain();
+          undoOsc.type = 'sine';
+          undoOsc.frequency.setValueAtTime(600, ctx.currentTime);
+          undoOsc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
+          undoGain.gain.setValueAtTime(0.1, ctx.currentTime);
+          undoGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+          undoOsc.connect(undoGain);
+          undoGain.connect(this.masterBus);
+          undoOsc.start();
+          undoOsc.stop(ctx.currentTime + 0.2);
+          break;
+        case 'click': this.playTone(1200, 'sine', 0.02, 0.02); break;
+        case 'confirm':
+          this.playTone(880, 'sine', 0.1, 0.1);
+          setTimeout(() => this.playTone(1109, 'sine', 0.1, 0.1), 50);
+          break;
+        case 'remove': this.playTone(150, 'sine', 0.1, 0.1); break;
+        case 'streak':
+          [330, 392, 440, 523, 659].forEach((f, i) => {
+            setTimeout(() => this.playTone(f, 'square', 0.2, 0.08), i * 120);
+          });
+          break;
+        case 'start':
+          [523, 659, 783, 1046].forEach((f, i) => {
+            setTimeout(() => this.playTone(f, 'square', 0.2, 0.05), i * 100);
+          });
+          break;
+        case 'gameOver':
+          this.playTone(100, 'sawtooth', 1.0, 0.1, true);
+          [783, 659, 523, 392].forEach((f, i) => {
+            setTimeout(() => this.playTone(f, 'sawtooth', 0.4, 0.05), 500 + (i * 200));
+          });
+          break;
+      }
+    } catch (e) {
+      console.warn('AudioService: Failed to play sound', soundName, e);
     }
   }
 

@@ -14,6 +14,7 @@ import FirstTo100 from './screens/games/FirstTo100';
 import CaribbeanCrush from './screens/games/CaribbeanCrush';
 import ArcticBlast from './screens/games/ArcticBlast';
 import AzaleaAttack from './screens/games/AzaleaAttack';
+import ReflexRacer from './screens/games/ReflexRacer';
 import Podium from './screens/Podium';
 import { GameState, Player, GameType, TargetColor } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -79,15 +80,16 @@ const App: React.FC = () => {
       case GameState.TEAM_SELECTION: return <TeamSelection players={players} onBack={() => setGameState(GameState.GAMES_MENU)} onConfirm={(p) => { setPlayers(p); setGameState(GameState.PLAYING); }} />;
       case GameState.PLAYING:
         if (!gameType) return null;
-        if (gameType === GameType.TEN_TO_COUNT) return <TenToCount players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
-        if (gameType === GameType.COUNTDOWN_CHAOS) return <CountdownChaos players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
-        if (gameType === GameType.CAPTURE_THE_FLAG) return <CaptureTheFlag players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
+        if (gameType === GameType.TEN_TO_COUNT) return <TenToCount key="ten-to-count" players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
+        if (gameType === GameType.COUNTDOWN_CHAOS) return <CountdownChaos key="countdown-chaos" players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
+        if (gameType === GameType.CAPTURE_THE_FLAG) return <CaptureTheFlag key="capture-the-flag" players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         if (gameType === GameType.CARIBBEAN_CRUSH) 
-          return <CaribbeanCrush players={players} gameType={gameType} shotsPerPlayer={shotsConfig} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
-        if (gameType === GameType.ARCTIC_BLAST) return <ArcticBlast players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
-        if (gameType === GameType.BATTLESHIPS) return <Battleships players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
-        if (gameType === GameType.FIRST_TO_100) return <FirstTo100 players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
-        if (gameType === GameType.AZALEA_ATTACK) return <AzaleaAttack onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} shotsPerPlayer={shotsConfig} />;
+          return <CaribbeanCrush key="caribbean-crush" players={players} gameType={gameType} shotsPerPlayer={shotsConfig} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
+        if (gameType === GameType.ARCTIC_BLAST) return <ArcticBlast key="arctic-blast" players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
+        if (gameType === GameType.BATTLESHIPS) return <Battleships key="battleships" players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
+        if (gameType === GameType.FIRST_TO_100) return <FirstTo100 key="first-to-100" players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
+        if (gameType === GameType.AZALEA_ATTACK) return <AzaleaAttack key="azalea-attack" onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} shotsPerPlayer={shotsConfig} />;
+        if (gameType === GameType.REFLEX_RACER) return <ReflexRacer key="reflex-racer" players={players} targetCount={shotsConfig} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         return null;
       case GameState.PODIUM: 
         return <Podium players={players} gameType={gameType} onPlayAgain={() => setGameState(GameState.PLAYING)} onReturnToGames={() => setGameState(GameState.GAMES_MENU)} />;
