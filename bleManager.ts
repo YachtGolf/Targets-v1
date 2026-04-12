@@ -1,6 +1,11 @@
 
 import { audioService } from './audioService';
 
+// Initialize Supabase client
+const supabaseUrl = 'https://tyueyjwhrlntazppmxqi.supabase.co';
+const supabaseKey = 'sb_publishable_vHf0M3-3i4aOC70zpEuqwQ_Z_cpz-IW';
+const supabase = (window as any).supabase?.createClient(supabaseUrl, supabaseKey);
+
 export const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 export const BLE_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
@@ -109,6 +114,17 @@ export class BLEManager extends EventTarget {
         if (value.trim() === `HIT:${color.toUpperCase()}` && now - lastHitTime > 500) {
           lastHitTime = now;
           window.dispatchEvent(new CustomEvent('ble-hit', { detail: { color } }));
+
+          // Log hit to Supabase
+          if (supabase) {
+            supabase.from('hits').insert([
+              { account_id: 'Test-Yacht-1', is_miss: false }
+            ]).then(({ error }: any) => {
+              if (error) console.error('Supabase Database Error:', error);
+            }).catch((err: any) => {
+              console.error('Supabase Communication Error:', err);
+            });
+          }
         }
       });
     }
