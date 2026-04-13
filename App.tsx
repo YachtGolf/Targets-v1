@@ -1,24 +1,24 @@
 
 import React, { useState } from 'react';
-import Layout from '@/components/Layout';
-import MainMenu from '@/screens/MainMenu';
-import AddPlayers from '@/screens/AddPlayers';
-import ConnectTargets from '@/screens/ConnectTargets';
-import GamesMenu from '@/screens/GamesMenu';
-import TeamSelection from '@/screens/TeamSelection';
-import TenToCount from '@/screens/games/TenToCount';
-import CountdownChaos from '@/screens/games/CountdownChaos';
-import CaptureTheFlag from '@/screens/games/CaptureTheFlag';
-import Battleships from '@/screens/games/Battleships';
-import FirstTo100 from '@/screens/games/FirstTo100';
-import CaribbeanCrush from '@/screens/games/CaribbeanCrush';
-import ArcticBlast from '@/screens/games/ArcticBlast';
-import AzaleaAttack from '@/screens/games/AzaleaAttack';
-import ReflexRacer from '@/screens/games/ReflexRacer';
-import Podium from '@/screens/Podium';
-import { GameState, Player, GameType, TargetColor } from '@/types';
+import Layout from './components/Layout';
+import MainMenu from './screens/MainMenu';
+import AddPlayers from './screens/AddPlayers';
+import ConnectTargets from './screens/ConnectTargets';
+import GamesMenu from './screens/GamesMenu';
+import TeamSelection from './screens/TeamSelection';
+import TenToCount from './screens/games/TenToCount';
+import CountdownChaos from './screens/games/CountdownChaos';
+import CaptureTheFlag from './screens/games/CaptureTheFlag';
+import Battleships from './screens/games/Battleships';
+import FirstTo100 from './screens/games/FirstTo100';
+import CaribbeanCrush from './screens/games/CaribbeanCrush';
+import ArcticBlast from './screens/games/ArcticBlast';
+import AzaleaAttack from './screens/games/AzaleaAttack';
+import ReflexRacer from './screens/games/ReflexGame';
+import Podium from './screens/Podium';
+import { GameState, Player, GameType, TargetColor } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { audioService } from '@/audioService';
+import { audioService } from './audioService';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MAIN_MENU);
