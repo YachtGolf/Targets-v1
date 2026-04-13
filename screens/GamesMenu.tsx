@@ -12,157 +12,177 @@ interface GamesMenuProps {
   onSelectGame: (type: GameType, config?: any) => void;
 }
 
+const individualGames = [
+  {
+    id: GameType.TEN_TO_COUNT,
+    title: 'Ten to Count',
+    desc: 'Standard deck precision. 10 shots per player.',
+    instructions: 'Standard deck precision. Each player gets 10 shots to score as many points as possible. High score wins the round.',
+    icon: <Target className="text-[#00A49E]" size={24} />,
+    min: 1,
+    max: 12
+  },
+  {
+    id: GameType.COUNTDOWN_CHAOS,
+    title: 'Countdown Chaos',
+    desc: '60-second blitz. Rapid acquisition.',
+    instructions: 'A 60-second blitz! Hit as many targets as you can before the timer hits zero. Speed and accuracy are key.',
+    icon: <Timer className="text-[#00A49E]" size={24} />,
+    min: 1,
+    max: 12
+  },
+  {
+    id: GameType.ARCTIC_BLAST,
+    title: 'Arctic Blast',
+    desc: 'Infinite frost. Grab balls and shoot scores... until frozen',
+    instructions: 'Infinite frost mode. Keep hitting targets to rack up points. The game continues until you miss or the "frost" takes over.',
+    icon: <Snowflake className="text-blue-400" size={24} />,
+    min: 1,
+    max: 12
+  },
+  {
+    id: GameType.CARIBBEAN_CRUSH,
+    title: 'Caribbean Crush',
+    desc: 'High-octane scoring. Chain hits for massive multipliers.',
+    instructions: 'High-octane scoring. Chain hits together to increase your multiplier. A miss resets your multiplier to 1x. Go for the massive combos!',
+    icon: <Waves className="text-[#00A49E]" size={24} />,
+    min: 1,
+    max: 12,
+    hasConfig: true
+  },
+  {
+    id: GameType.CAPTURE_THE_FLAG,
+    title: 'Capture the Flag',
+    desc: 'Tactical target ownership. Claim all three flags to win.',
+    instructions: 'Tactical target ownership. Each target represents a flag. Be the first to "capture" (hit) all three flags to win the game.',
+    icon: <Flag className="text-[#00A49E]" size={24} />,
+    min: 2,
+    max: 6
+  },
+  {
+    id: GameType.BATTLESHIPS,
+    title: 'Battleships',
+    desc: 'Strategic fleet duel. Select 2 combatants.',
+    instructions: 'Strategic fleet duel. Each player is assigned targets representing their fleet. Hit your opponent\'s targets to sink their ships before they sink yours.',
+    icon: <Ship className="text-[#00A49E]" size={24} />,
+    min: 2,
+    max: 12
+  },
+  {
+    id: GameType.REFLEX_RACER,
+    title: 'Reflex Racer',
+    desc: 'Rapid target acquisition. Speed is everything.',
+    instructions: 'Rapid target acquisition! The game will randomly select a target for you to hit. You have 60 seconds to hit it. The faster you hit it, the more points you get (starting at 1000). After a hit, there is a 5-second countdown to the next target.',
+    icon: <Zap className="text-orange-500" size={24} />,
+    min: 1,
+    max: 12,
+    hasConfig: true
+  }
+];
+
+const teamGames = [
+  {
+    id: GameType.FIRST_TO_100,
+    title: 'First to 100',
+    desc: 'Target-locked race. First team to 100 wins.',
+    instructions: 'A target-locked race to the finish! The first team to reach a total score of 100 points wins the challenge.',
+    icon: <Target className="text-[#00A49E]" size={24} />,
+    min: 2,
+    max: 12
+  }
+];
+
+const tournamentGames = [
+  {
+    id: GameType.AZALEA_ATTACK,
+    title: 'Azalea Attack',
+    desc: 'Masters-themed tournament. Walk-up registration for large events.',
+    instructions: 'Masters-themed tournament mode. Designed for large events with walk-up registration. Compete for the high score on the global leaderboard.',
+    icon: <Trophy className="text-emerald-700" size={24} />,
+    min: 0,
+    max: 100,
+    hasConfig: true,
+    tournament: true
+  }
+];
+
+const allGames = [...individualGames, ...teamGames, ...tournamentGames];
+
+interface GameCardProps {
+  g: any;
+  playersCount: number;
+  onSelect: (id: GameType, hasConfig: boolean) => void;
+  onShowInfo: (g: any) => void;
+}
+
+const GameCard: React.FC<GameCardProps> = ({ g, playersCount, onSelect, onShowInfo }) => {
+  const tooFew = !g.tournament && playersCount < g.min;
+  const tooMany = playersCount > g.max;
+  const disabled = tooFew || tooMany;
+
+  return (
+    <motion.div
+      onClick={(e) => {
+        e.stopPropagation();
+        if (disabled) return;
+        onSelect(g.id, !!g.hasConfig);
+      }}
+      className={`p-6 rounded-3xl flex flex-col text-left transition-all h-full relative ${disabled ? 'bg-white/20 grayscale opacity-40 cursor-not-allowed' : 'bg-white border border-transparent hover:border-[#00A49E]/30 cursor-pointer'}`}
+    >
+      <div className="flex justify-between items-start mb-4">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${g.tournament ? 'bg-emerald-50' : 'bg-[#DEE1DA]'}`}>
+          {g.icon}
+        </div>
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            audioService.play('click');
+            onShowInfo(g);
+          }}
+          className="p-2 hover:bg-[#3C3C3C]/5 rounded-full transition-colors"
+        >
+          <Info size={18} className="text-[#3C3C3C]/30 hover:text-[#00A49E]" />
+        </button>
+      </div>
+      <h3 className="brand-headline text-xl text-[#3C3C3C] mb-1">{g.title}</h3>
+      <p className="text-[10px] font-medium text-[#3C3C3C]/50 leading-relaxed mb-4">{g.desc}</p>
+      {tooFew && (
+        <div className="mt-auto text-[8px] font-black uppercase text-amber-600 bg-amber-50 px-2 py-1 rounded-md w-fit">
+          Needs {g.min}+ Players
+        </div>
+      )}
+      {tooMany && (
+        <div className="mt-auto text-[8px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-1 rounded-md w-fit">
+          Max {g.max} Players
+        </div>
+      )}
+      {g.tournament && (
+        <div className="mt-auto text-[8px] font-black uppercase text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md w-fit">
+          Tournament Mode
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
 const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConnected, onSelectGame }) => {
   const [selectingShotsFor, setSelectingShotsFor] = useState<GameType | null>(null);
   const [showingInstructionsFor, setShowingInstructionsFor] = useState<any | null>(null);
 
-  const individualGames = [
-    {
-      id: GameType.TEN_TO_COUNT,
-      title: 'Ten to Count',
-      desc: 'Standard deck precision. 10 shots per player.',
-      instructions: 'Standard deck precision. Each player gets 10 shots to score as many points as possible. High score wins the round.',
-      icon: <Target className="text-[#00A49E]" size={24} />,
-      min: 1,
-      max: 12
-    },
-    {
-      id: GameType.COUNTDOWN_CHAOS,
-      title: 'Countdown Chaos',
-      desc: '60-second blitz. Rapid acquisition.',
-      instructions: 'A 60-second blitz! Hit as many targets as you can before the timer hits zero. Speed and accuracy are key.',
-      icon: <Timer className="text-[#00A49E]" size={24} />,
-      min: 1,
-      max: 12
-    },
-    {
-      id: GameType.ARCTIC_BLAST,
-      title: 'Arctic Blast',
-      desc: 'Infinite frost. Grab balls and shoot scores... until frozen',
-      instructions: 'Infinite frost mode. Keep hitting targets to rack up points. The game continues until you miss or the "frost" takes over.',
-      icon: <Snowflake className="text-blue-400" size={24} />,
-      min: 1,
-      max: 12
-    },
-    {
-      id: GameType.CARIBBEAN_CRUSH,
-      title: 'Caribbean Crush',
-      desc: 'High-octane scoring. Chain hits for massive multipliers.',
-      instructions: 'High-octane scoring. Chain hits together to increase your multiplier. A miss resets your multiplier to 1x. Go for the massive combos!',
-      icon: <Waves className="text-[#00A49E]" size={24} />,
-      min: 1,
-      max: 12,
-      hasConfig: true
-    },
-    {
-      id: GameType.CAPTURE_THE_FLAG,
-      title: 'Capture the Flag',
-      desc: 'Tactical target ownership. Claim all three flags to win.',
-      instructions: 'Tactical target ownership. Each target represents a flag. Be the first to "capture" (hit) all three flags to win the game.',
-      icon: <Flag className="text-[#00A49E]" size={24} />,
-      min: 2,
-      max: 6
-    },
-    {
-      id: GameType.BATTLESHIPS,
-      title: 'Battleships',
-      desc: 'Strategic fleet duel. Select 2 combatants.',
-      instructions: 'Strategic fleet duel. Each player is assigned targets representing their fleet. Hit your opponent\'s targets to sink their ships before they sink yours.',
-      icon: <Ship className="text-[#00A49E]" size={24} />,
-      min: 2,
-      max: 12
-    },
-    {
-      id: GameType.REFLEX_RACER,
-      title: 'Reflex Racer',
-      desc: 'Rapid target acquisition. Speed is everything.',
-      instructions: 'Rapid target acquisition! The game will randomly select a target for you to hit. You have 60 seconds to hit it. The faster you hit it, the more points you get (starting at 1000). After a hit, there is a 5-second countdown to the next target.',
-      icon: <Zap className="text-orange-500" size={24} />,
-      min: 1,
-      max: 12,
-      hasConfig: true
-    }
-  ];
-
-  const teamGames = [
-    {
-      id: GameType.FIRST_TO_100,
-      title: 'First to 100',
-      desc: 'Target-locked race. First team to 100 wins.',
-      instructions: 'A target-locked race to the finish! The first team to reach a total score of 100 points wins the challenge.',
-      icon: <Target className="text-[#00A49E]" size={24} />,
-      min: 2,
-      max: 12
-    }
-  ];
-
-  const tournamentGames = [
-    {
-      id: GameType.AZALEA_ATTACK,
-      title: 'Azalea Attack',
-      desc: 'Masters-themed tournament. Walk-up registration for large events.',
-      instructions: 'Masters-themed tournament mode. Designed for large events with walk-up registration. Compete for the high score on the global leaderboard.',
-      icon: <Trophy className="text-emerald-700" size={24} />,
-      min: 0, // Walk-up allows 0 initial
-      max: 100,
-      hasConfig: true,
-      tournament: true
-    }
-  ];
-
-  const GameCard: React.FC<{ g: any }> = ({ g }) => {
-    const tooFew = !g.tournament && playersCount < g.min;
-    const tooMany = playersCount > g.max;
-    const disabled = tooFew || tooMany;
-
-    return (
-      <motion.div
-        onClick={() => {
-          if (disabled) return;
-          audioService.play('click');
-          if (g.hasConfig) {
-            setSelectingShotsFor(g.id);
-          } else {
-            onSelectGame(g.id);
-          }
-        }}
-        className={`p-6 rounded-3xl flex flex-col text-left transition-all h-full relative ${disabled ? 'bg-white/20 grayscale opacity-40 cursor-not-allowed' : 'bg-white border border-transparent hover:border-[#00A49E]/30 cursor-pointer'}`}
-      >
-        <div className="flex justify-between items-start mb-4">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${g.tournament ? 'bg-emerald-50' : 'bg-[#DEE1DA]'}`}>
-            {g.icon}
-          </div>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              audioService.play('click');
-              setShowingInstructionsFor(g);
-            }}
-            className="p-2 hover:bg-[#3C3C3C]/5 rounded-full transition-colors"
-          >
-            <Info size={18} className="text-[#3C3C3C]/30 hover:text-[#00A49E]" />
-          </button>
-        </div>
-        <h3 className="brand-headline text-xl text-[#3C3C3C] mb-1">{g.title}</h3>
-        <p className="text-[10px] font-medium text-[#3C3C3C]/50 leading-relaxed mb-4">{g.desc}</p>
-        {tooFew && (
-          <div className="mt-auto text-[8px] font-black uppercase text-amber-600 bg-amber-50 px-2 py-1 rounded-md w-fit">
-            Needs {g.min}+ Players
-          </div>
-        )}
-        {tooMany && (
-          <div className="mt-auto text-[8px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-1 rounded-md w-fit">
-            Max {g.max} Players
-          </div>
-        )}
-        {g.tournament && (
-          <div className="mt-auto text-[8px] font-black uppercase text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md w-fit">
-            Tournament Mode
-          </div>
-        )}
-      </motion.div>
-    );
+  const handleGameSelect = (id: GameType, hasConfig: boolean) => {
+    audioService.play('click');
+    // Small delay to prevent touch-through issues on iPad
+    setTimeout(() => {
+      if (hasConfig) {
+        setSelectingShotsFor(id);
+      } else {
+        onSelectGame(id);
+      }
+    }, 50);
   };
+
+  const selectedGame = allGames.find(g => g.id === selectingShotsFor);
+
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full h-full flex flex-col py-6">
@@ -194,21 +214,21 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
         <section>
           <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#00A49E] mb-6">Individual Series</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {individualGames.map(g => <GameCard key={g.id} g={g} />)}
+            {individualGames.map(g => <GameCard key={g.id} g={g} playersCount={playersCount} onSelect={handleGameSelect} onShowInfo={setShowingInstructionsFor} />)}
           </div>
         </section>
 
         <section>
           <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#00A49E] mb-6">Team Challenges</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {teamGames.map(g => <GameCard key={g.id} g={g} />)}
+            {teamGames.map(g => <GameCard key={g.id} g={g} playersCount={playersCount} onSelect={handleGameSelect} onShowInfo={setShowingInstructionsFor} />)}
           </div>
         </section>
 
         <section>
           <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-700 mb-6">Tournament Series</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {tournamentGames.map(g => <GameCard key={g.id} g={g} />)}
+            {tournamentGames.map(g => <GameCard key={g.id} g={g} playersCount={playersCount} onSelect={handleGameSelect} onShowInfo={setShowingInstructionsFor} />)}
           </div>
         </section>
       </div>
@@ -216,6 +236,7 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
       <AnimatePresence>
         {selectingShotsFor && (
           <motion.div 
+            key="config-modal"
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
@@ -232,7 +253,7 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
               onClick={e => e.stopPropagation()}
             >
               <div className="w-20 h-20 rounded-full bg-[#00A49E]/10 flex items-center justify-center mb-6">
-                <Zap size={40} className="text-[#00A49E]" />
+                {selectedGame?.icon ? React.cloneElement(selectedGame.icon as React.ReactElement, { size: 40 }) : <Zap size={40} className="text-[#00A49E]" />}
               </div>
               <h2 className="brand-headline text-4xl text-[#3C3C3C] mb-2">Round Config</h2>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#3C3C3C40] mb-10 text-center">Select your total shot volume</p>
@@ -241,10 +262,14 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
                 {[3, 5, 10].map(s => (
                   <button
                     key={s}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       audioService.play('confirm');
-                      onSelectGame(selectingShotsFor, { shots: s });
-                      setSelectingShotsFor(null);
+                      // Small delay to ensure state transitions are clean
+                      setTimeout(() => {
+                        onSelectGame(selectingShotsFor, { shots: s });
+                        setSelectingShotsFor(null);
+                      }, 50);
                     }}
                     className="flex flex-col items-center justify-center py-6 rounded-3xl border-2 border-[#3C3C3C10] hover:border-[#00A49E] hover:bg-[#00A49E10] transition-all group"
                   >
@@ -269,6 +294,7 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
 
         {showingInstructionsFor && (
           <motion.div 
+            key="instructions-modal"
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
@@ -321,7 +347,8 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
               </div>
 
               <button 
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   const g = showingInstructionsFor;
                   audioService.play('confirm');
                   setShowingInstructionsFor(null);
@@ -329,11 +356,14 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
                   const tooMany = playersCount > g.max;
                   if (tooFew || tooMany) return;
                   
-                  if (g.hasConfig) {
-                    setSelectingShotsFor(g.id);
-                  } else {
-                    onSelectGame(g.id);
-                  }
+                  // Small delay to allow instructions modal to start closing
+                  setTimeout(() => {
+                    if (g.hasConfig) {
+                      setSelectingShotsFor(g.id);
+                    } else {
+                      onSelectGame(g.id);
+                    }
+                  }, 50);
                 }}
                 disabled={(!showingInstructionsFor.tournament && playersCount < showingInstructionsFor.min) || playersCount > showingInstructionsFor.max}
                 className={`mt-10 py-5 rounded-2xl font-black uppercase tracking-[0.2em] transition-all ${
