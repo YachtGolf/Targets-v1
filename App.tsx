@@ -14,7 +14,7 @@ import FirstTo100 from './screens/games/FirstTo100';
 import CaribbeanCrush from './screens/games/CaribbeanCrush';
 import ArcticBlast from './screens/games/ArcticBlast';
 import AzaleaAttack from './screens/games/AzaleaAttack';
-import ReflexRacer from './screens/games/ReflexGame';
+import ReflexGame from './screens/games/ReflexGame';
 import Podium from './screens/Podium';
 import { GameState, Player, GameType, TargetColor } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -89,7 +89,7 @@ const App: React.FC = () => {
         if (gameType === GameType.BATTLESHIPS) return <Battleships key="battleships" players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         if (gameType === GameType.FIRST_TO_100) return <FirstTo100 key="first-to-100" players={players} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         if (gameType === GameType.AZALEA_ATTACK) return <AzaleaAttack key="azalea-attack" onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} shotsPerPlayer={shotsConfig} />;
-        if (gameType === GameType.REFLEX_RACER) return <ReflexRacer key="reflex-racer" players={players} targetCount={shotsConfig} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
+        if (gameType === GameType.REFLEX_RACER) return <ReflexGame key="reflex-racer" players={players} targetCount={shotsConfig} onComplete={handleComplete} onQuit={() => setGameState(GameState.GAMES_MENU)} />;
         return null;
       case GameState.PODIUM: 
         return <Podium players={players} gameType={gameType} onPlayAgain={() => setGameState(GameState.PLAYING)} onReturnToGames={() => setGameState(GameState.GAMES_MENU)} />;
