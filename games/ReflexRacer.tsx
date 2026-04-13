@@ -30,18 +30,28 @@ const ReflexRacer: React.FC<Props> = ({ players, targetCount, onComplete, onQuit
   const [intermissionTime, setIntermissionTime] = useState(5);
   const [targetsHit, setTargetsHit] = useState(0);
   const [wasMiss, setWasMiss] = useState(false);
-  const [gameState, setGameState] = useState((players || []).map(p => ({ ...p, score: 0, hits: [] })));
+  const [gameState, setGameState] = useState<any[]>(() => 
+    players && players.length > 0 ? players.map(p => ({ ...p, score: 0, hits: [] })) : []
+  );
   const [showTurnPopup, setShowTurnPopup] = useState(true);
   const [history, setHistory] = useState<GameStateRecord[]>([]);
   
   const timerRef = useRef<any>(null);
   const intermissionRef = useRef<any>(null);
+
+  // Sync gameState with players prop if it changes or if initially empty
+  useEffect(() => {
+    if (players && players.length > 0 && gameState.length === 0) {
+      setGameState(players.map(p => ({ ...p, score: 0, hits: [] })));
+    }
+  }, [players, gameState.length]);
+
   const currentPlayer = gameState[pIdx];
 
   const colors: TargetColor[] = ['red', 'blue', 'green'];
 
-  // Safety guard for empty players
-  if (!players || players.length === 0 || !currentPlayer) {
+  // Safety guard for empty players - wait for sync
+  if (!gameState || gameState.length === 0 || !currentPlayer) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#DEE1DA] otd-grid-bg">
         <div className="bg-white p-12 rounded-[3rem] shadow-2xl text-center max-w-sm mx-4 border-4 border-white">
