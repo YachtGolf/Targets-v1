@@ -35,6 +35,7 @@ export enum GameType {
   CARIBBEAN_CRUSH = 'CARIBBEAN_CRUSH',
   ARCTIC_BLAST = 'ARCTIC_BLAST',
   AZALEA_ATTACK = 'AZALEA_ATTACK'
+  REFLEX_RACER = 'REFLEX_RACER'
 }
 
 export interface Ship {
