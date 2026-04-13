@@ -22,7 +22,8 @@ interface GameStateRecord {
   wasMiss: boolean;
 }
 
-const ReflexRacer: React.FC<Props> = ({ players, targetCount, onComplete, onQuit }) => {
+const ReflexGame: React.FC<Props> = ({ players, targetCount, onComplete, onQuit }) => {
+  const [isInitializing, setIsInitializing] = useState(true);
   const [pIdx, setPIdx] = useState(0);
   const [phase, setPhase] = useState<GamePhase>('playing');
   const [currentTarget, setCurrentTarget] = useState<TargetColor>('red');
@@ -30,18 +31,45 @@ const ReflexRacer: React.FC<Props> = ({ players, targetCount, onComplete, onQuit
   const [intermissionTime, setIntermissionTime] = useState(5);
   const [targetsHit, setTargetsHit] = useState(0);
   const [wasMiss, setWasMiss] = useState(false);
-  const [gameState, setGameState] = useState((players || []).map(p => ({ ...p, score: 0, hits: [] })));
+  const [gameState, setGameState] = useState<any[]>([]);
   const [showTurnPopup, setShowTurnPopup] = useState(true);
   const [history, setHistory] = useState<GameStateRecord[]>([]);
   
   const timerRef = useRef<any>(null);
   const intermissionRef = useRef<any>(null);
+
+  // Sync gameState with players prop
+  useEffect(() => {
+    if (players && players.length > 0 && gameState.length === 0) {
+      setGameState(players.map(p => ({ ...p, score: 0, hits: [] })));
+    }
+  }, [players, gameState.length]);
+
+  // Loading state to allow for prop synchronization on slower devices (iPad)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const currentPlayer = gameState[pIdx];
 
   const colors: TargetColor[] = ['red', 'blue', 'green'];
 
   // Safety guard for empty players
-  if (!players || players.length === 0 || !currentPlayer) {
+  if (isInitializing) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#DEE1DA] otd-grid-bg">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-[#00A49E] border-t-transparent rounded-full animate-spin mb-4" />
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#3C3C3C]/40">Initializing Game...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!gameState || gameState.length === 0 || !currentPlayer) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#DEE1DA] otd-grid-bg">
         <div className="bg-white p-12 rounded-[3rem] shadow-2xl text-center max-w-sm mx-4 border-4 border-white">
@@ -461,4 +489,4 @@ const ReflexRacer: React.FC<Props> = ({ players, targetCount, onComplete, onQuit
   );
 };
 
-export default ReflexRacer;
+export default ReflexGame;
