@@ -110,6 +110,9 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
     }
   ];
 
+  const allGames = [...individualGames, ...teamGames, ...tournamentGames];
+  const selectedGame = allGames.find(g => g.id === selectingShotsFor);
+
   const GameCard: React.FC<{ g: any }> = ({ g }) => {
     const tooFew = !g.tournament && playersCount < g.min;
     const tooMany = playersCount > g.max;
@@ -120,11 +123,14 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
         onClick={() => {
           if (disabled) return;
           audioService.play('click');
-          if (g.hasConfig) {
-            setSelectingShotsFor(g.id);
-          } else {
-            onSelectGame(g.id);
-          }
+          // Use setTimeout to ensure touch event cycle completes on mobile browsers
+          setTimeout(() => {
+            if (g.hasConfig) {
+              setSelectingShotsFor(g.id);
+            } else {
+              onSelectGame(g.id);
+            }
+          }, 0);
         }}
         className={`p-6 rounded-3xl flex flex-col text-left transition-all h-full relative ${disabled ? 'bg-white/20 grayscale opacity-40 cursor-not-allowed' : 'bg-white border border-transparent hover:border-[#00A49E]/30 cursor-pointer'}`}
       >
@@ -232,7 +238,7 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
               onClick={e => e.stopPropagation()}
             >
               <div className="w-20 h-20 rounded-full bg-[#00A49E]/10 flex items-center justify-center mb-6">
-                <Zap size={40} className="text-[#00A49E]" />
+                {selectedGame?.icon ? React.cloneElement(selectedGame.icon as React.ReactElement, { size: 40 }) : <Zap size={40} className="text-[#00A49E]" />}
               </div>
               <h2 className="brand-headline text-4xl text-[#3C3C3C] mb-2">Round Config</h2>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#3C3C3C40] mb-10 text-center">Select your total shot volume</p>
@@ -325,15 +331,19 @@ const GamesMenu: React.FC<GamesMenuProps> = ({ onBack, playersCount, targetsConn
                   const g = showingInstructionsFor;
                   audioService.play('confirm');
                   setShowingInstructionsFor(null);
-                  const tooFew = !g.tournament && playersCount < g.min;
-                  const tooMany = playersCount > g.max;
-                  if (tooFew || tooMany) return;
                   
-                  if (g.hasConfig) {
-                    setSelectingShotsFor(g.id);
-                  } else {
-                    onSelectGame(g.id);
-                  }
+                  // Use setTimeout to ensure the instruction modal closes before starting the game/config
+                  setTimeout(() => {
+                    const tooFew = !g.tournament && playersCount < g.min;
+                    const tooMany = playersCount > g.max;
+                    if (tooFew || tooMany) return;
+                    
+                    if (g.hasConfig) {
+                      setSelectingShotsFor(g.id);
+                    } else {
+                      onSelectGame(g.id);
+                    }
+                  }, 0);
                 }}
                 disabled={(!showingInstructionsFor.tournament && playersCount < showingInstructionsFor.min) || playersCount > showingInstructionsFor.max}
                 className={`mt-10 py-5 rounded-2xl font-black uppercase tracking-[0.2em] transition-all ${
