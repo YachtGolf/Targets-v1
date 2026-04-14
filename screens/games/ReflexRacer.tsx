@@ -30,14 +30,16 @@ const ReflexRacer: React.FC<Props> = ({ players, targetCount, onComplete, onQuit
   const [intermissionTime, setIntermissionTime] = useState(5);
   const [targetsHit, setTargetsHit] = useState(0);
   const [wasMiss, setWasMiss] = useState(false);
-  const [gameState, setGameState] = useState<any[]>([]);
+  const [gameState, setGameState] = useState<any[]>(() => 
+    players && players.length > 0 ? players.map(p => ({ ...p, score: 0, hits: [] })) : []
+  );
   const [showTurnPopup, setShowTurnPopup] = useState(true);
   const [history, setHistory] = useState<GameStateRecord[]>([]);
   
   const timerRef = useRef<any>(null);
   const intermissionRef = useRef<any>(null);
 
-  // Sync gameState with players prop on mount and if players change
+  // Sync gameState with players prop if it changes or if initially empty
   useEffect(() => {
     if (players && players.length > 0 && gameState.length === 0) {
       setGameState(players.map(p => ({ ...p, score: 0, hits: [] })));
@@ -50,23 +52,7 @@ const ReflexRacer: React.FC<Props> = ({ players, targetCount, onComplete, onQuit
 
   // Safety guard for empty players - wait for sync
   if (!gameState || gameState.length === 0 || !currentPlayer) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#DEE1DA] otd-grid-bg">
-        <div className="bg-white p-12 rounded-[3rem] shadow-2xl text-center max-w-sm mx-4 border-4 border-white">
-          <div className="w-20 h-20 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-6">
-            <UserMinus size={40} className="text-rose-500" />
-          </div>
-          <h2 className="brand-headline text-3xl text-[#3C3C3C] mb-4 uppercase italic">No Players Found</h2>
-          <p className="text-sm text-[#3C3C3C]/50 mb-8">Please add players in the main menu before starting Reflex Racer.</p>
-          <button 
-            onClick={onQuit} 
-            className="w-full py-4 bg-[#3C3C3C] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-[#00A49E] transition-all active:scale-95"
-          >
-            Back to Menu
-          </button>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const completedPlayers = React.useMemo(() => {
