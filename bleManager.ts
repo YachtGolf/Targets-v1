@@ -4,7 +4,11 @@ import { audioService } from './audioService';
 // Initialize Supabase client
 const supabaseUrl = 'https://tyueyjwhrlntazppmxqi.supabase.co';
 const supabaseKey = 'sb_publishable_vHf0M3-3i4aOC70zpEuqwQ_Z_cpz-IW';
-const supabase = (window as any).supabase?.createClient(supabaseUrl, supabaseKey);
+const supabase = (window as any).supabase ? (window as any).supabase.createClient(supabaseUrl, supabaseKey) : null;
+
+if (!supabase) {
+  console.warn('Supabase client failed to initialize. Check if the script is loaded in index.html');
+}
 
 export const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 export const BLE_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
@@ -108,7 +112,7 @@ export class BLEManager extends EventTarget {
       let lastHitTime = 0;
       const decoder = new TextDecoder();
       await characteristic.startNotifications();
-      characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
+      characteristic.addEventListener('characteristicvaluechanged', async (event: any) => {
         const now = Date.now();
         const value = decoder.decode(event.target.value);
         if (value.trim() === `HIT:${color.toUpperCase()}` && now - lastHitTime > 500) {
@@ -117,13 +121,19 @@ export class BLEManager extends EventTarget {
 
           // Log hit to Supabase
           if (supabase) {
-            supabase.from('hits').insert([
-              { account_id: 'Test-Yacht-1', is_miss: false }
-            ]).then(({ error }: any) => {
-              if (error) console.error('Supabase Database Error:', error);
-            }).catch((err: any) => {
+            try {
+              console.log('Syncing to Supabase...');
+              const { error } = await supabase.from('hits').insert([
+                { account_id: 'Test-Yacht-1', is_miss: false }
+              ]);
+              if (error) {
+                console.error('Supabase Database Error:', error);
+              } else {
+                console.log('Sync Success!');
+              }
+            } catch (err: any) {
               console.error('Supabase Communication Error:', err);
-            });
+            }
           }
         }
       });
