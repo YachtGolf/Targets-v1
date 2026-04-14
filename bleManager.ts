@@ -1,15 +1,6 @@
 
 import { audioService } from './audioService';
 
-// Initialize Supabase client
-const supabaseUrl = 'https://tyueyjwhrlntazppmxqi.supabase.co';
-const supabaseKey = 'sb_publishable_vHf0M3-3i4aOC70zpEuqwQ_Z_cpz-IW';
-const supabase = (window as any).supabase ? (window as any).supabase.createClient(supabaseUrl, supabaseKey) : null;
-
-if (!supabase) {
-  console.warn('Supabase client failed to initialize. Check if the script is loaded in index.html');
-}
-
 export const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 export const BLE_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
@@ -119,21 +110,30 @@ export class BLEManager extends EventTarget {
           lastHitTime = now;
           window.dispatchEvent(new CustomEvent('ble-hit', { detail: { color } }));
 
-          // Log hit to Supabase
-          if (supabase) {
-            try {
-              console.log('Syncing to Supabase...');
+          // Log hit to Supabase (Lazy Initialization)
+          try {
+            console.log('Syncing to Supabase...');
+            const supabaseUrl = 'https://tyueyjwhrlntazppmxqi.supabase.co';
+            const supabaseKey = 'sb_publishable_vHf0M3-3i4aOC70zpEuqwQ_Z_cpz-IW';
+            
+            // Get the client right when we need it, not at startup
+            const supabase = (window as any).supabase?.createClient(supabaseUrl, supabaseKey);
+
+            if (!supabase) {
+              console.error('Supabase still not loaded');
+            } else {
               const { error } = await supabase.from('hits').insert([
                 { account_id: 'Test-Yacht-1', is_miss: false }
               ]);
+              
               if (error) {
                 console.error('Supabase Database Error:', error);
               } else {
                 console.log('Sync Success!');
               }
-            } catch (err: any) {
-              console.error('Supabase Communication Error:', err);
             }
+          } catch (err: any) {
+            console.error('Supabase Communication Error:', err);
           }
         }
       });
