@@ -355,7 +355,18 @@ const ReflexRacer: React.FC<Props> = ({ players, targetCount, onComplete, onQuit
               className="flex flex-col items-center gap-8"
             >
               <div className={`w-32 h-32 rounded-full flex items-center justify-center shadow-lg border-4 border-white ${wasMiss ? 'bg-rose-500' : 'bg-emerald-500'}`}>
-                {wasMiss ? <X size={64} className="text-white" /> : <Zap size={64} className="text-white fill-current" />}
+                {wasMiss ? (
+                  <X size={64} className="text-white" />
+                ) : (
+                  <motion.span 
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: [0, 1.5, 1.2], rotate: 0 }}
+                    transition={{ duration: 0.4, times: [0, 0.6, 1] }}
+                    className="text-7xl"
+                  >
+                    💥
+                  </motion.span>
+                )}
               </div>
               <h2 className="brand-headline text-7xl text-[#3C3C3C] italic uppercase tracking-tighter">
                 {wasMiss ? 'TOO BAD!' : 'BOOM!'}
