@@ -19,6 +19,7 @@ import Podium from './screens/Podium';
 import { GameState, Player, GameType, TargetColor } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from './audioService';
+import { bleManager } from './bleManager';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MAIN_MENU);
@@ -47,6 +48,7 @@ const App: React.FC = () => {
 
   const handleStart = (type: GameType, config?: any) => {
     setGameType(type);
+    bleManager.currentGameName = type;
     if (config?.shots) setShotsConfig(config.shots);
     
     const isTeamMode = type === GameType.FIRST_TO_100;

@@ -5,6 +5,7 @@ export const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 export const BLE_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
 export class BLEManager extends EventTarget {
+  public currentGameName: string = 'None';
   devices: Record<string, any> = { red: null, blue: null, green: null };
   statuses: Record<string, 'disconnected' | 'connecting' | 'connected'> = {
     red: 'disconnected', blue: 'disconnected', green: 'disconnected'
@@ -123,7 +124,7 @@ export class BLEManager extends EventTarget {
               console.error('Supabase still not loaded');
             } else {
               const { error } = await supabase.from('hits').insert([
-                { account_id: 'Test-Yacht-1', is_miss: false }
+                { account_id: 'Test-Yacht-1', is_miss: false, game_type: this.currentGameName }
               ]);
               
               if (error) {
