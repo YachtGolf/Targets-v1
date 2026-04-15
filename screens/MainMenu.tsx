@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player } from '../types';
 import { Users, Radio, Play, ShoppingCart, Database, Download, Volume2, VolumeX, Settings2 } from 'lucide-react';
@@ -14,6 +14,32 @@ const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
   const longPressTimer = useRef<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
+
+  // Auto Fullscreen on first interaction
+  useEffect(() => {
+    const handleInteraction = () => {
+      const docEl = document.documentElement as any;
+      const isFullscreen = document.fullscreenElement || (document as any).webkitFullscreenElement;
+      
+      if (!isFullscreen) {
+        const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+        if (requestFS) {
+          requestFS.call(docEl).catch((err: any) => {
+            console.warn("Fullscreen request failed:", err);
+          });
+        }
+      }
+    };
+
+    // Listeners are set to run only once per mount
+    document.addEventListener('click', handleInteraction, { once: true });
+    document.addEventListener('touchstart', handleInteraction, { once: true });
+
+    return () => {
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+    };
+  }, []);
 
   // Secret Lead Export Function
   const handleExportLeads = () => {
