@@ -3,13 +3,16 @@ import { audioService } from './audioService';
 
 export const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 export const BLE_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+export const BLE_WRITE_CHARACTERISTIC_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 
 export class BLEManager extends EventTarget {
   public currentGameName: string = 'None';
   devices: Record<string, any> = { red: null, blue: null, green: null };
+  writeCharacteristics: Record<string, any> = { red: null, blue: null, green: null };
   statuses: Record<string, 'disconnected' | 'connecting' | 'connected'> = {
     red: 'disconnected', blue: 'disconnected', green: 'disconnected'
   };
+  lightStates: Record<string, boolean> = { red: false, blue: false, green: false };
   errors: Record<string, string | null> = { red: null, blue: null, green: null };
   private reconnecting: Record<string, boolean> = { red: false, blue: false, green: false };
 
@@ -75,7 +78,9 @@ export class BLEManager extends EventTarget {
         } catch (e) {}
       }
       this.devices[color] = null;
+      this.writeCharacteristics[color] = null;
       this.statuses[color] = 'disconnected';
+      this.lightStates[color] = false;
       this.errors[color] = null;
     }
     this.dispatchEvent(new Event('statuschange'));
@@ -99,6 +104,14 @@ export class BLEManager extends EventTarget {
     const server = await device.gatt?.connect();
     const service = await server?.getPrimaryService(BLE_SERVICE_UUID);
     const characteristic = await service?.getCharacteristic(BLE_CHARACTERISTIC_UUID);
+    
+    // Grab the write characteristic if it exists
+    try {
+      const writeChar = await service?.getCharacteristic(BLE_WRITE_CHARACTERISTIC_UUID);
+      this.writeCharacteristics[color] = writeChar;
+    } catch (e) {
+      console.warn(`BLE: Could not find write characteristic for ${color}`, e);
+    }
 
     if (characteristic) {
       let lastHitTime = 0;
@@ -142,8 +155,37 @@ export class BLEManager extends EventTarget {
 
     this.statuses[color] = 'connected';
     this.reconnecting[color] = false;
+    
+    // Auto-disable lights on connection to enforce app default
+    this.setLights(color, false);
+    
     audioService.play('connect');
     this.dispatchEvent(new Event('statuschange'));
+  }
+
+  async setLights(color: 'red' | 'blue' | 'green', isOn: boolean) {
+    const writeChar = this.writeCharacteristics[color];
+    if (!writeChar) {
+      console.warn(`BLE: Cannot set lights for ${color}, write characteristic not found.`);
+      return;
+    }
+
+    try {
+      this.lightStates[color] = isOn;
+      this.dispatchEvent(new Event('statuschange')); // Update UI immediately
+      
+      const commandString = isOn ? 'L:1' : 'L:0';
+      const encoder = new TextEncoder();
+      const commandBytes = encoder.encode(commandString);
+      
+      await writeChar.writeValueWithoutResponse(commandBytes);
+      console.log(`BLE: Sent command ${commandString} to ${color}`);
+    } catch (e) {
+      console.error(`BLE: Failed to write to light characteristic for ${color}`, e);
+      // Revert state if it failed
+      this.lightStates[color] = !isOn;
+      this.dispatchEvent(new Event('statuschange'));
+    }
   }
 
   async disconnect(color: 'red' | 'blue' | 'green') {
@@ -159,6 +201,7 @@ export class BLEManager extends EventTarget {
     const wasConnected = this.statuses[color] === 'connected';
     this.statuses[color] = 'disconnected';
     this.devices[color] = null;
+    this.writeCharacteristics[color] = null;
     this.dispatchEvent(new Event('statuschange'));
 
     // Auto-reconnect logic if it was a drop
