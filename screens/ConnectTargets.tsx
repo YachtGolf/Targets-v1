@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Radio, Bluetooth, ShieldAlert, WifiOff, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Radio, Bluetooth, ShieldAlert, WifiOff, RotateCcw, Lightbulb, LightbulbOff } from 'lucide-react';
 import { TargetColor } from '../types';
 import { TARGET_CONFIG, COLORS } from '../constants';
 import { bleManager } from '../bleManager';
@@ -16,11 +16,13 @@ interface ConnectTargetsProps {
 const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTargets, onToggleTarget }) => {
   const [bleStatuses, setBleStatuses] = useState({ ...bleManager.statuses });
   const [bleErrors, setBleErrors] = useState({ ...bleManager.errors });
+  const [lightStates, setLightStates] = useState({ ...bleManager.lightStates });
 
   useEffect(() => {
     const updateStatus = () => {
       setBleStatuses({ ...bleManager.statuses });
       setBleErrors({ ...bleManager.errors });
+      setLightStates({ ...bleManager.lightStates });
     };
     bleManager.addEventListener('statuschange', updateStatus);
     return () => bleManager.removeEventListener('statuschange', updateStatus);
@@ -44,6 +46,7 @@ const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTarget
           const isLinked = connectedTargets[color];
           const bleStatus = bleStatuses[color];
           const bleError = bleErrors[color];
+          const isLightOn = lightStates[color];
           const isBleConnected = bleStatus === 'connected';
 
           return (
@@ -92,12 +95,38 @@ const ConnectTargets: React.FC<ConnectTargetsProps> = ({ onBack, connectedTarget
                   ) : bleStatus === 'connecting' ? (
                     <span className="text-[10px] font-black uppercase text-[#00A49E] animate-pulse py-2.5">Searching...</span>
                   ) : (
-                    <button 
-                      onClick={() => bleManager.disconnect(color)}
-                      className="bg-white text-red-500 border border-red-100 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all"
-                    >
-                      Disconnect
-                    </button>
+                    <div className="flex flex-col gap-2 w-full">
+                      <button 
+                        onClick={() => bleManager.disconnect(color)}
+                        className="bg-white text-red-500 border border-red-100 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all w-full"
+                      >
+                        Disconnect
+                      </button>
+                      
+                      <button
+                        onClick={() => bleManager.setLights(color, !isLightOn)}
+                        className={`flex items-center justify-between px-4 py-2.5 rounded-full border transition-all ${
+                          isLightOn 
+                            ? 'bg-yellow-100 border-yellow-200 text-yellow-700' 
+                            : 'bg-[#3C3C3C] border-[#3C3C3C] text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isLightOn ? <Lightbulb size={12} fill="currentColor" /> : <LightbulbOff size={12} />}
+                          <span className="text-[9px] font-black uppercase tracking-widest">
+                            Target Lights
+                          </span>
+                        </div>
+                        <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${isLightOn ? 'bg-yellow-400' : 'bg-gray-500'}`}>
+                          <motion.div 
+                            layout
+                            className="w-3 h-3 bg-white rounded-full shadow-sm"
+                            animate={{ x: isLightOn ? 16 : 0 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          />
+                        </div>
+                      </button>
+                    </div>
                   )}
                 </div>
                 
