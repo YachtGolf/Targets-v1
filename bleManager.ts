@@ -1,4 +1,3 @@
-
 import { audioService } from './audioService';
 
 export const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
@@ -14,11 +13,10 @@ export class BLEManager extends EventTarget {
   };
   lightStates: Record<string, boolean> = { red: false, blue: false, green: false };
   errors: Record<string, string | null> = { red: null, blue: null, green: null };
-  private reconnecting: Record<string, boolean> = { red: false, blue: false, green: false };
 
   async connect(color: 'red' | 'blue' | 'green') {
     if (!(navigator as any).bluetooth) {
-      this.errors[color] = "Web Bluetooth is not supported in this browser. Please use a compatible browser like Bluefy (iOS) or Chrome/Edge (Desktop).";
+      this.errors[color] = "Web Bluetooth is not supported in this browser.";
       this.dispatchEvent(new Event('statuschange'));
       return;
     }
@@ -30,35 +28,17 @@ export class BLEManager extends EventTarget {
 
       const deviceName = `OTD_${color.toUpperCase()}_TARGET`;
       
-      // 1. Try to find previously paired device first (Ghost Connection Hijack)
-      let device: any = null;
-      if ((navigator as any).bluetooth.getDevices) {
-        try {
-          const devices = await (navigator as any).bluetooth.getDevices();
-          device = devices.find((d: any) => d.name === deviceName);
-          if (device) {
-            console.log(`BLE: Found known device ${deviceName}, attempting direct connection...`);
-          }
-        } catch (e) {
-          console.warn("BLE: getDevices failed", e);
-        }
-      }
-
-      // 2. If not found or connection fails, show picker with RELAXED filters
-      if (!device) {
-        device = await (navigator as any).bluetooth.requestDevice({
-          filters: [
-            { name: deviceName }, // Filter by name only first (more reliable for some chips)
-            { services: [BLE_SERVICE_UUID] } // Or by service
-          ],
-          optionalServices: [BLE_SERVICE_UUID]
-        });
-      }
+      // CRITICAL FIX: Removed the background getDevices() check.
+      // We strictly call requestDevice directly so the browser doesn't block the click.
+      const device = await (navigator as any).bluetooth.requestDevice({
+        filters: [{ name: deviceName }],
+        optionalServices: [BLE_SERVICE_UUID]
+      });
 
       await this.setupDevice(device, color);
     } catch (err: any) {
       this.statuses[color] = 'disconnected';
-      if (err.name !== 'NotFoundError') {
+      if (err.name !== 'NotFoundError') { // NotFoundError is just the user cancelling the popup
         this.errors[color] = err.message || 'Connection failed';
         console.error(`BLE: Connection error for ${color}`, err);
       }
@@ -70,12 +50,9 @@ export class BLEManager extends EventTarget {
   async resetAll() {
     console.log("BLE: Resetting all Bluetooth states...");
     for (const color of ['red', 'blue', 'green'] as const) {
-      this.reconnecting[color] = false;
       const device = this.devices[color];
       if (device && device.gatt?.connected) {
-        try {
-          device.gatt.disconnect();
-        } catch (e) {}
+        try { device.gatt.disconnect(); } catch (e) {}
       }
       this.devices[color] = null;
       this.writeCharacteristics[color] = null;
@@ -84,16 +61,6 @@ export class BLEManager extends EventTarget {
       this.errors[color] = null;
     }
     this.dispatchEvent(new Event('statuschange'));
-    
-    // If browser supports it, try to "forget" devices to force a clean slate
-    if ((navigator as any).bluetooth.getDevices) {
-      try {
-        const devices = await (navigator as any).bluetooth.getDevices();
-        for (const device of devices) {
-          if (device.forget) await device.forget();
-        }
-      } catch (e) {}
-    }
   }
 
   private async setupDevice(device: any, color: 'red' | 'blue' | 'green') {
@@ -124,51 +91,27 @@ export class BLEManager extends EventTarget {
           lastHitTime = now;
           window.dispatchEvent(new CustomEvent('ble-hit', { detail: { color } }));
 
-          // Log hit to Supabase (Lazy Initialization)
+          // Supabase Logging
           try {
-            console.log('Syncing to Supabase...');
             const supabaseUrl = 'https://tyueyjwhrlntazppmxqi.supabase.co';
             const supabaseKey = 'sb_publishable_vHf0M3-3i4aOC70zpEuqwQ_Z_cpz-IW';
-            
-            // Get the client right when we need it, not at startup
             const supabase = (window as any).supabase?.createClient(supabaseUrl, supabaseKey);
-
-            if (!supabase) {
-              console.error('Supabase still not loaded');
-            } else {
-              const { error } = await supabase.from('hits').insert([
-                { account_id: 'Test-Yacht-1', is_miss: false, game_type: this.currentGameName }
-              ]);
-              
-              if (error) {
-                console.error('Supabase Database Error:', error);
-              } else {
-                console.log('Sync Success!');
-              }
+            if (supabase) {
+              supabase.from('hits').insert([{ account_id: 'Test-Yacht-1', is_miss: false, game_type: this.currentGameName }]);
             }
-          } catch (err: any) {
-            console.error('Supabase Communication Error:', err);
-          }
+          } catch (err: any) {}
         }
       });
     }
 
     this.statuses[color] = 'connected';
-    this.reconnecting[color] = false;
-    
-    // Auto-disable lights on connection to enforce app default
-    this.setLights(color, false);
-    
     audioService.play('connect');
     this.dispatchEvent(new Event('statuschange'));
   }
 
   async setLights(color: 'red' | 'blue' | 'green', isOn: boolean) {
     const writeChar = this.writeCharacteristics[color];
-    if (!writeChar) {
-      console.warn(`BLE: Cannot set lights for ${color}, write characteristic not found.`);
-      return;
-    }
+    if (!writeChar) return;
 
     try {
       this.lightStates[color] = isOn;
@@ -181,7 +124,6 @@ export class BLEManager extends EventTarget {
       await writeChar.writeValueWithoutResponse(commandBytes);
       console.log(`BLE: Sent command ${commandString} to ${color}`);
     } catch (e) {
-      console.error(`BLE: Failed to write to light characteristic for ${color}`, e);
       // Revert state if it failed
       this.lightStates[color] = !isOn;
       this.dispatchEvent(new Event('statuschange'));
@@ -189,7 +131,6 @@ export class BLEManager extends EventTarget {
   }
 
   async disconnect(color: 'red' | 'blue' | 'green') {
-    this.reconnecting[color] = false; // Stop auto-reconnect
     const device = this.devices[color];
     if (device && device.gatt?.connected) {
       device.gatt.disconnect();
@@ -198,49 +139,17 @@ export class BLEManager extends EventTarget {
   }
 
   handleDisconnect(color: 'red' | 'blue' | 'green') {
-    const wasConnected = this.statuses[color] === 'connected';
     this.statuses[color] = 'disconnected';
     this.devices[color] = null;
     this.writeCharacteristics[color] = null;
+    // CRITICAL FIX: Removed the attemptAutoReconnect() loop. 
+    // This allows the ESP32 to fully sever the connection and reset cleanly.
     this.dispatchEvent(new Event('statuschange'));
-
-    // Auto-reconnect logic if it was a drop
-    if (wasConnected && !this.reconnecting[color]) {
-      this.reconnecting[color] = true;
-      console.log(`BLE: Connection lost to ${color}. Attempting auto-reconnect...`);
-      this.attemptAutoReconnect(color);
-    }
   }
 
-  private async attemptAutoReconnect(color: 'red' | 'blue' | 'green') {
-    if (!this.reconnecting[color]) return;
-    
-    try {
-      // Wait a bit before retrying
-      await new Promise(r => setTimeout(r, 2000));
-      
-      if ((navigator as any).bluetooth.getDevices) {
-        const devices = await (navigator as any).bluetooth.getDevices();
-        const deviceName = `OTD_${color.toUpperCase()}_TARGET`;
-        const device = devices.find((d: any) => d.name === deviceName);
-        
-        if (device) {
-          await this.setupDevice(device, color);
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn(`BLE: Auto-reconnect failed for ${color}`, e);
-      // Retry again in 5 seconds
-      setTimeout(() => this.attemptAutoReconnect(color), 5000);
-    }
-  }
-
-  // Legacy methods for backward compatibility if needed
+  // Legacy methods
   async connectBlue() { return this.connect('blue'); }
   async disconnectBlue() { return this.disconnect('blue'); }
-
-  // Getters for single-target compatibility if needed
   get status() { return this.statuses.blue; }
   get error() { return this.errors.blue; }
 }
