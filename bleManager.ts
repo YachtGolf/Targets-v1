@@ -1,5 +1,5 @@
-// UUID Configuration Map (1=Green, 2=Blue, 3=Red)
-export const TARGET_CONFIG = {
+// Renamed to avoid conflicting with your constants.ts file
+export const BLE_UUIDS = {
   green: {
     service: '11111111-b5a3-f393-e0a9-e50e24dcca9e',
     notify:  '11111111-b5a3-f393-e0a9-e50e24dccaa1',
@@ -21,6 +21,10 @@ class BLEManager extends EventTarget {
   devices: { [key: string]: any } = {};
   writeCharacteristics: { [key: string]: any } = {};
   statuses: { [key: string]: string } = { red: 'disconnected', blue: 'disconnected', green: 'disconnected' };
+  
+  // RESTORED: The errors object required by ConnectTargets.tsx
+  errors: { [key: string]: string } = { red: '', blue: '', green: '' }; 
+  
   reconnecting: { [key: string]: boolean } = { red: false, blue: false, green: false };
   lightStates: { [key: string]: boolean } = { red: false, blue: false, green: false };
   currentGameName: string = '';
@@ -28,9 +32,10 @@ class BLEManager extends EventTarget {
   async connect(color: 'red' | 'blue' | 'green') {
     try {
       this.statuses[color] = 'connecting';
+      this.errors[color] = ''; // Clear previous errors
       this.dispatchEvent(new Event('statuschange'));
 
-      const config = TARGET_CONFIG[color];
+      const config = BLE_UUIDS[color];
 
       // Request device by strict UUID, bypassing any cached names
       const device = await navigator.bluetooth.requestDevice({
@@ -38,11 +43,32 @@ class BLEManager extends EventTarget {
       });
 
       await this.setupDevice(device, color, config);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`BLE Connection failed for ${color}:`, error);
       this.statuses[color] = 'disconnected';
+      
+      // RESTORED: Pass error messages to the UI
+      this.errors[color] = error.message || 'Connection failed';
       this.dispatchEvent(new Event('statuschange'));
     }
+  }
+
+  async disconnect(color: 'red' | 'blue' | 'green') {
+    const device = this.devices[color];
+    if (device && device.gatt?.connected) {
+      device.gatt.disconnect();
+    }
+  }
+
+  // RESTORED: The reset function for your UI button
+  resetAll() {
+    Object.keys(this.devices).forEach(color => {
+      this.disconnect(color as 'red' | 'blue' | 'green');
+    });
+    this.statuses = { red: 'disconnected', blue: 'disconnected', green: 'disconnected' };
+    this.errors = { red: '', blue: '', green: '' };
+    this.lightStates = { red: false, blue: false, green: false };
+    this.dispatchEvent(new Event('statuschange'));
   }
 
   private async setupDevice(device: any, color: 'red' | 'blue' | 'green', config: any) {
@@ -53,10 +79,9 @@ class BLEManager extends EventTarget {
     const server = await device.gatt?.connect();
     const service = await server?.getPrimaryService(config.service);
     
-    // Fetch all characteristics at once (fixes Bluefy double-fetch glitch)
-    const characteristics = await service?.getCharacteristics();
-    const notifyChar = characteristics?.find((c: any) => c.uuid === config.notify);
-    const writeChar = characteristics?.find((c: any) => c.uuid === config.write);
+    // Standard explicit fetch for Bluefy stability
+    const notifyChar = await service?.getCharacteristic(config.notify).catch(() => null);
+    const writeChar = await service?.getCharacteristic(config.write).catch(() => null);
 
     this.writeCharacteristics[color] = writeChar || null;
 
@@ -85,9 +110,9 @@ class BLEManager extends EventTarget {
     }
 
     this.statuses[color] = 'connected';
+    this.errors[color] = '';
     this.reconnecting[color] = false;
     
-    // Trigger global audio if available in your project scope
     if ((window as any).audioService) {
         (window as any).audioService.play('connect');
     }
@@ -110,7 +135,7 @@ class BLEManager extends EventTarget {
       const commandString = isOn ? 'L:1' : 'L:0';
       const commandBytes = new TextEncoder().encode(commandString);
       
-      // Standard write (more stable on Bluefy)
+      // Standard write
       await writeChar.writeValue(commandBytes);
       console.log(`BLE: Sent command ${commandString} to ${color}`);
       
