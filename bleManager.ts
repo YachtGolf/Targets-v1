@@ -97,30 +97,29 @@ class BLEManager extends EventTarget {
           window.dispatchEvent(new CustomEvent('ble-hit', { detail: { color } }));
 
 // Supabase Logging
-try {
-  const supabaseUrl = 'https://tyueyjwhrlntazppmxqi.supabase.co';
-  const supabaseKey = 'sb_publishable_vHf0M3-3i4aOC70zpEuqwQ_Z_cpz-IW';
-  const supabase = (window as any).supabase?.createClient(supabaseUrl, supabaseKey);
-  
-  if (supabase) {
-    // We add 'await' so Bluefy doesn't cancel the request prematurely
-    // We add 'target_color: color' to send the color to the new table
-    const { error } = await supabase.from('hits').insert([{ 
-      account_id: 'Test-Yacht-1', 
-      target_color: color, 
-      is_miss: false, 
-      game_type: this.currentGameName 
-    }]);
+          try {
+            const supabaseUrl = 'https://tyueyjwhrlntazppmxqi.supabase.co';
+            const supabaseKey = 'sb_publishable_vHf0M3-3i4aOC70zpEuqwQ_Z_cpz-IW';
+            const supabase = (window as any).supabase?.createClient(supabaseUrl, supabaseKey);
+            
+            if (supabase) {
+              const { error } = await supabase.from('hits').insert([{ 
+                account_id: 'Test-Yacht-1', 
+                target_color: color, 
+                is_miss: false, 
+                game_type: this.currentGameName || 'Unknown Game' 
+              }]);
 
-    if (error) {
-      console.error('Supabase Insert Error:', error.message);
-    } else {
-      console.log('Hit logged to Supabase!');
-    }
-  }
-} catch (err: any) {
-  console.error('Supabase Code Crash:', err);
-}
+              if (error) {
+                alert('SUPABASE REJECTED IT: ' + error.message);
+              } 
+              // We won't alert on success so it doesn't annoy you while playing
+            } else {
+              alert('SUPABASE LIBRARY MISSING! The window.supabase object does not exist.');
+            }
+          } catch (err: any) {
+            alert('CODE CRASHED: ' + err.message);
+          }
           }
       });
     }
