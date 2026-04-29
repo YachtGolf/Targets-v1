@@ -121,6 +121,7 @@ try {
 } catch (err: any) {
   console.error('Supabase Code Crash:', err);
 }
+          }
       });
     }
 
