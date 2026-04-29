@@ -96,7 +96,7 @@ class BLEManager extends EventTarget {
           lastHitTime = now;
           window.dispatchEvent(new CustomEvent('ble-hit', { detail: { color } }));
 
-// Supabase Logging
+// Supabase Logging (Silent & Safe)
           try {
             const supabaseUrl = 'https://tyueyjwhrlntazppmxqi.supabase.co';
             const supabaseKey = 'sb_publishable_vHf0M3-3i4aOC70zpEuqwQ_Z_cpz-IW';
@@ -111,14 +111,15 @@ class BLEManager extends EventTarget {
               }]);
 
               if (error) {
-                alert('SUPABASE REJECTED IT: ' + error.message);
-              } 
-              // We won't alert on success so it doesn't annoy you while playing
+                console.error('[Supabase] Rejected:', error.message);
+              } else {
+                console.log('[Supabase] Hit logged!');
+              }
             } else {
-              alert('SUPABASE LIBRARY MISSING! The window.supabase object does not exist.');
+              console.error('[Supabase] Library missing.');
             }
           } catch (err: any) {
-            alert('CODE CRASHED: ' + err.message);
+            console.error('[Supabase] Code Crash:', err.message);
           }
           }
       });
